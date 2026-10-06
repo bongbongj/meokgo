@@ -128,6 +128,7 @@ MVP에서는 회원 로그인 없이 기기 기반 사용자 식별을 사용한
 | `final_quest_selection_reason` | `VOTE_RANK`, `HOST_TIE_BREAK` |
 | `progress_status` | `TODO`, `DONE`, `CANCELED` |
 | `retention_stage` | `FIRST_DISCOVERY`, `ALLEY_EXPLORER`, `REGION_MASTER` |
+| `invite_unjoinable_reason` | `EXPIRED`, `ALREADY_STARTED`, `FULL`, `INVALID_LINK`, `FINISHED` |
 
 **Note**
 
@@ -135,6 +136,13 @@ MVP에서는 회원 로그인 없이 기기 기반 사용자 식별을 사용한
 - 다른 기기에서 기존 참여 내역을 복구하는 기능은 MVP에서 제외한다.
 - 푸시 알림은 MVP에서 제외하며, 투표 상태는 앱 내부 문구로 표시한다.
 - 퀘스트 완료는 사진, GPS, 영수증 인증 없이 완료 버튼으로 처리한다.
+- MVP 실시간 갱신은 HTTP 폴링으로 처리한다.
+- 방장 권한 이어받기 버튼은 방장의 마지막 진행 액션 이후 5분이 지나면 활성화한다.
+- 초대 링크는 생성 후 24시간 동안 유효하다.
+- 탐험방은 생성 후 24시간이 지나면 만료 처리한다.
+- Story 이미지는 가능하면 S3에 저장하고, 초기 개발 상황에 따라 서버 로컬 저장을 허용한다.
+- Story 이미지와 Story 제작용 사진의 보관 기간은 생성 후 30일이다.
+- 초기 운영 데이터는 지역 3개, 지역별 퀘스트 최소 10개, 범용 퀘스트 최소 10개를 기준으로 준비한다.
 
 ---
 
@@ -294,7 +302,7 @@ MVP에서는 회원 로그인 없이 기기 기반 사용자 식별을 사용한
 
 **Summary:** 지역 검색 및 분류 조회
 
-**Description:** 검색어와 일치하는 지역 또는 상위 지역에 속한 하위 지역 목록을 조회한다.
+**Description:** 검색어와 일치하는 지역 또는 상위 지역에 속한 하위 지역 목록을 조회한다. MVP 초기 운영 지역은 3개를 기준으로 준비한다.
 
 **Query Parameters**
 
@@ -315,12 +323,31 @@ MVP에서는 회원 로그인 없이 기기 기반 사용자 식별을 사용한
       {
         "region_id": 1,
         "region_name": "홍대",
+        "region_level": "DISTRICT",
+        "parent_region_id": null
+      },
+      {
+        "region_id": 2,
+        "region_name": "성수",
+        "region_level": "DISTRICT",
+        "parent_region_id": null
+      },
+      {
+        "region_id": 3,
+        "region_name": "망원",
+        "region_level": "DISTRICT",
         "parent_region_id": null
       }
     ]
   }
 }
 ```
+
+**Note**
+
+- MVP 초기 지역은 `홍대`, `성수`, `망원` 3개를 먼저 등록한다.
+- 지역별 퀘스트는 각 지역 최소 10개를 등록한다.
+- 조건 후보가 부족할 때 보충할 범용 퀘스트는 최소 10개를 등록한다.
 
 ---
 
@@ -509,10 +536,13 @@ MVP에서는 회원 로그인 없이 기기 기반 사용자 식별을 사용한
         "connected": true
       }
     ],
+    "is_host": false,
     "host_disconnected": false,
     "host_action_expired": false,
     "host_takeover_available_at": null,
-    "can_take_over_host": false
+    "host_takeover_remaining_seconds": 300,
+    "can_take_over_host": false,
+    "can_start_vote": false
   }
 }
 ```
@@ -520,7 +550,8 @@ MVP에서는 회원 로그인 없이 기기 기반 사용자 식별을 사용한
 **Note**
 
 - MVP에서는 푸시 알림을 사용하지 않고 화면 내 상태 표시로 안내한다.
-- 방장 권한 이어받기 버튼 활성화 기준 시간은 추후 확정한다.
+- 방장 권한 이어받기 버튼은 `last_host_action_at` 이후 5분이 지나면 활성화한다.
+- 방장이 계속 접속 중이거나 마지막 진행 액션 이후 5분이 지나지 않았으면 `can_take_over_host = false`를 반환한다.
 
 ---
 
@@ -551,7 +582,7 @@ MVP에서는 회원 로그인 없이 기기 기반 사용자 식별을 사용한
 
 **Summary:** 방장 권한 이어받기
 
-**Description:** 일정 시간 동안 방장이 진행하지 않은 경우 참여자가 직접 방장 권한을 이어받는다.
+**Description:** 방장의 마지막 진행 액션 이후 5분 동안 추가 진행이 없는 경우 참여자가 직접 방장 권한을 이어받는다.
 
 **Responses**
 
@@ -575,7 +606,7 @@ MVP에서는 회원 로그인 없이 기기 기반 사용자 식별을 사용한
 
 **Summary:** 초대 정보 조회
 
-**Description:** 초대한 사람, 탐험 지역, 초대 날짜, 참여 가능 여부를 조회한다.
+**Description:** 초대한 사람, 탐험 지역, 초대 날짜, 참여 가능 여부를 조회한다. 초대 링크는 생성 후 24시간 동안 유효하다.
 
 **Responses**
 
@@ -590,10 +621,35 @@ MVP에서는 회원 로그인 없이 기기 기반 사용자 식별을 사용한
     "host_nickname": "효림",
     "region_name": "홍대",
     "created_at": "2026-10-06T01:00:00",
-    "joinable": true
+    "expired_at": "2026-10-07T01:00:00",
+    "joinable": true,
+    "unjoinable_reason": null
   }
 }
 ```
+
+참여할 수 없는 초대 링크 예시:
+
+```json
+{
+  "success": true,
+  "data": {
+    "invite_token": "abc123",
+    "room_id": 10,
+    "host_nickname": "효림",
+    "region_name": "홍대",
+    "created_at": "2026-10-06T01:00:00",
+    "expired_at": "2026-10-07T01:00:00",
+    "joinable": false,
+    "unjoinable_reason": "ALREADY_STARTED"
+  }
+}
+```
+
+**Note**
+
+- `unjoinable_reason`은 `EXPIRED`, `ALREADY_STARTED`, `FULL`, `INVALID_LINK`, `FINISHED` 중 하나를 사용한다.
+- 탐험방이 생성 후 24시간이 지나 `EXPIRED` 상태가 되면 초대 링크도 참여 불가로 처리한다.
 
 ---
 
@@ -640,6 +696,7 @@ MVP에서는 회원 로그인 없이 기기 기반 사용자 식별을 사용한
 | 409 | `PARTICIPANT-003` | 같은 탐험방 내 닉네임 중복 |
 | 409 | `ROOM-002` | 투표 시작 이후 신규 참여 차단 |
 | 409 | `PARTICIPANT-002` | 정원 초과 |
+| 410 | `INVITE-002` | 초대 링크 만료 |
 
 ---
 
@@ -822,6 +879,8 @@ MVP에서는 회원 로그인 없이 기기 기반 사용자 식별을 사용한
   "data": {
     "total_participant_count": 4,
     "voted_participant_count": 3,
+    "selected_count": 2,
+    "max_select_count": 3,
     "vote_status_text": "4명 중 3명 투표 완료",
     "push_notification_enabled": false,
     "participants": [
@@ -1325,6 +1384,8 @@ MVP에서는 회원 로그인 없이 기기 기반 사용자 식별을 사용한
 **Note**
 
 - 사진은 퀘스트 인증 용도가 아니라 탐험 종료 후 Story 제작 재료다.
+- Story 제작용 사진은 S3 저장을 우선으로 하며, 초기 개발 상황에 따라 서버 로컬 저장을 허용한다.
+- Story 제작용 사진은 업로드 후 30일 동안 보관한다.
 
 ---
 
@@ -1332,7 +1393,7 @@ MVP에서는 회원 로그인 없이 기기 기반 사용자 식별을 사용한
 
 **Summary:** Story 이미지 생성
 
-**Description:** 사진, 지역, 날짜, 완료 퀘스트 정보를 조합하여 9:16 기록 이미지를 생성한다.
+**Description:** 사진, 지역, 날짜, 완료 퀘스트 정보를 조합하여 9:16 기록 이미지를 생성한다. Story 이미지는 S3 저장을 우선으로 하며, 초기 개발 상황에 따라 서버 로컬 저장을 허용한다.
 
 **Request Body**
 
@@ -1353,7 +1414,9 @@ MVP에서는 회원 로그인 없이 기기 기반 사용자 식별을 사용한
   "data": {
     "story_image_id": 1,
     "story_image_url": "https://cdn.meokgo.app/story/1.png",
-    "image_ratio": "9:16"
+    "image_ratio": "9:16",
+    "storage_provider": "S3",
+    "expired_at": "2026-11-05T02:40:00"
   }
 }
 ```
@@ -1377,16 +1440,23 @@ MVP에서는 회원 로그인 없이 기기 기반 사용자 식별을 사용한
     "story_image_id": 1,
     "story_image_url": "https://cdn.meokgo.app/story/1.png",
     "image_ratio": "9:16",
+    "storage_provider": "S3",
+    "expired_at": "2026-11-05T02:40:00",
     "created_at": "2026-10-06T02:40:00"
   }
 }
 ```
 
+**Note**
+
+- Story 이미지는 생성 후 30일 동안 보관한다.
+- 보관 기간이 지난 이미지는 조회할 수 없거나 삭제된 상태로 응답한다.
+
 ---
 
 ## 14. 실시간 갱신 정책
 
-MVP에서는 HTTP 폴링을 기본으로 한다. 추후 필요 시 WebSocket 또는 SSE로 확장한다.
+MVP에서는 HTTP 폴링을 기본으로 한다. WebSocket과 SSE는 MVP 범위에서 제외하고 추후 확장 후보로 둔다.
 
 | 화면 | API | 호출 주기 |
 | --- | --- | --- |
@@ -1425,11 +1495,21 @@ MVP에서는 HTTP 폴링을 기본으로 한다. 추후 필요 시 WebSocket 또
 
 ---
 
-## 16. 보완 필요 사항
+## 16. 확정 정책 및 추후 보완 후보
 
-- 방장 권한 이어받기 버튼 활성화 기준 시간 확정
-- 초대 링크 만료 시간 확정
-- 탐험방 만료 시간 확정
-- 실시간 처리 방식을 폴링, WebSocket, SSE 중 하나로 확정
-- Story 이미지 저장 위치와 보관 기간 확정
-- 초기 지역과 지역별 퀘스트 운영 데이터 확정
+아래 정책은 MVP 기준으로 확정했다.
+
+| 항목 | 확정값 |
+| --- | --- |
+| 방장 권한 이어받기 버튼 활성화 기준 시간 | 방장 마지막 진행 액션 이후 5분 |
+| 초대 링크 만료 시간 | 생성 후 24시간 |
+| 탐험방 만료 시간 | 생성 후 24시간 |
+| 실시간 처리 방식 | HTTP 폴링 |
+| Story 이미지 저장 위치 | S3 우선, 초기 개발 상황에 따라 서버 로컬 저장 허용 |
+| Story 이미지 보관 기간 | 생성 후 30일 |
+| 초기 지역/퀘스트 운영 데이터 | 홍대, 성수, 망원 / 지역별 퀘스트 최소 10개, 범용 퀘스트 최소 10개 |
+
+추후 보완 후보는 다음과 같다.
+
+- S3 사용 확정 시 버킷명, 접근 URL 정책, 만료 파일 삭제 배치 확정
+- 지역별 퀘스트 운영 문구와 검수 기준 확정

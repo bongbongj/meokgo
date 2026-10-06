@@ -12,7 +12,7 @@
 >
 > 작성 기준: 기능명세서 스크린샷, `추민교_먹으러GO_발표.pdf`, `Reference/API명세서.md`, 추가 정책 회의 내용 검토 결과
 
-> 최종 판단: 현재 MVP 요구사항 범위에서는 본 문서를 기준으로 DB 구현을 진행할 수 있다. 단, 방장 권한 이어받기 버튼 활성화 기준 시간, 링크 만료 시간, 방 만료 시간은 개발 정책 확정 후 보완한다.
+> 최종 판단: 현재 MVP 요구사항 범위에서는 본 문서를 기준으로 DB 구현을 진행할 수 있다. 방장 권한 이어받기 기준, 링크 만료 시간, 방 만료 시간, Story 보관 기간, 초기 운영 데이터 기준은 본 문서의 확정 정책을 따른다.
 
 ---
 
@@ -240,8 +240,9 @@ retention_stage 1 : N user_retention_stage
 | 11 | host_takeover_available_at | DATETIME |  |  |  |  | NULL | 권한 이어받기 가능 일시 |
 | 12 | exploration_started_at | DATETIME |  |  |  |  | NULL | 탐험 시작 일시 |
 | 13 | exploration_finished_at | DATETIME |  |  |  |  | NULL | 탐험 종료 일시 |
-| 14 | created_at | DATETIME | O |  |  |  | CURRENT_TIMESTAMP | 생성 일시 |
-| 15 | updated_at | DATETIME | O |  |  |  | CURRENT_TIMESTAMP | 수정 일시 |
+| 14 | expired_at | DATETIME | O |  |  |  | 생성일시 + 24시간 | 탐험방 만료 일시 |
+| 15 | created_at | DATETIME | O |  |  |  | CURRENT_TIMESTAMP | 생성 일시 |
+| 16 | updated_at | DATETIME | O |  |  |  | CURRENT_TIMESTAMP | 수정 일시 |
 
 ### 제약조건
 
@@ -256,7 +257,9 @@ retention_stage 1 : N user_retention_stage
 
 - 방장이 앱을 종료했다가 다시 접속해도 `room_status`가 종료 상태가 아니면 탐험방은 유지한다.
 - 투표 시작 이후에는 초대 링크 참여 API에서 신규 참여를 차단한다.
-- 방장 권한 이어받기 버튼 활성화 기준 시간은 정책 확정 후 `host_takeover_available_at` 산정 로직에 반영한다.
+- 방장 권한 이어받기 버튼은 `last_host_action_at` 이후 5분이 지나면 활성화한다.
+- `host_takeover_available_at`은 `last_host_action_at + 5분`으로 산정한다.
+- 탐험방은 생성 후 24시간이 지나면 `room_status = 'EXPIRED'`로 전환한다.
 
 ---
 
@@ -296,7 +299,7 @@ retention_stage 1 : N user_retention_stage
 | 2 | room_id | BIGINT UNSIGNED | O |  | FK(exploration_room) |  | - | 탐험방 ID |
 | 3 | invite_token | VARCHAR(100) | O |  |  | O | - | 초대 토큰 |
 | 4 | active_yn | TINYINT(1) | O |  |  |  | 1 | 사용 여부 |
-| 5 | expired_at | DATETIME |  |  |  |  | NULL | 만료 일시 |
+| 5 | expired_at | DATETIME | O |  |  |  | 생성일시 + 24시간 | 만료 일시 |
 | 6 | created_at | DATETIME | O |  |  |  | CURRENT_TIMESTAMP | 생성 일시 |
 
 ### 제약조건
@@ -306,6 +309,11 @@ retention_stage 1 : N user_retention_stage
 | FK | room_id -> exploration_room.room_id | 탐험방 초대 링크 연결 |
 | UNIQUE | invite_token | 초대 토큰 중복 방지 |
 | INDEX | active_yn, expired_at | 참여 가능 링크 조회 |
+
+### 구현 메모
+
+- 초대 링크는 생성 후 24시간 동안 유효하다.
+- 연결된 탐험방이 먼저 `EXPIRED`, `VOTING`, `VOTE_CLOSED`, `QUEST_CONFIRMED`, `IN_PROGRESS`, `FINISHED` 상태가 되면 링크가 만료 전이어도 신규 참여를 차단한다.
 
 ---
 
@@ -567,7 +575,11 @@ retention_stage 1 : N user_retention_stage
 | 2 | record_id | BIGINT UNSIGNED | O |  | FK(exploration_record) |  | - | 탐험 기록 ID |
 | 3 | photo_url | VARCHAR(500) | O |  |  |  | - | 사진 URL |
 | 4 | photo_order | INT | O |  |  |  | - | 사진 순서 |
-| 5 | created_at | DATETIME | O |  |  |  | CURRENT_TIMESTAMP | 생성 일시 |
+| 5 | storage_provider | ENUM('LOCAL','S3') | O |  |  |  | 'S3' | 저장 위치 |
+| 6 | stored_path | VARCHAR(500) | O |  |  |  | - | 저장소 내부 경로 |
+| 7 | expired_at | DATETIME | O |  |  |  | 생성일시 + 30일 | 보관 만료 일시 |
+| 8 | deleted_yn | TINYINT(1) | O |  |  |  | 0 | 삭제 여부 |
+| 9 | created_at | DATETIME | O |  |  |  | CURRENT_TIMESTAMP | 생성 일시 |
 
 ### 제약조건
 
@@ -580,6 +592,7 @@ retention_stage 1 : N user_retention_stage
 
 - 사진은 퀘스트 인증이 아니며, Story 제작 선택 시에만 저장한다.
 - 사진 선택 정책은 최소 1장, 최대 4장이다.
+- Story 제작용 사진은 업로드 후 30일 동안 보관한다.
 
 ---
 
@@ -609,7 +622,18 @@ retention_stage 1 : N user_retention_stage
 | 3 | template_id | BIGINT UNSIGNED | O |  | FK(story_template) |  | - | 템플릿 ID |
 | 4 | story_image_url | VARCHAR(500) | O |  |  |  | - | 생성 이미지 URL |
 | 5 | image_ratio | VARCHAR(10) | O |  |  |  | '9:16' | 결과 공유 카드 비율 |
-| 6 | created_at | DATETIME | O |  |  |  | CURRENT_TIMESTAMP | 생성 일시 |
+| 6 | storage_provider | ENUM('LOCAL','S3') | O |  |  |  | 'S3' | 저장 위치 |
+| 7 | stored_path | VARCHAR(500) | O |  |  |  | - | 저장소 내부 경로 |
+| 8 | expired_at | DATETIME | O |  |  |  | 생성일시 + 30일 | 보관 만료 일시 |
+| 9 | deleted_yn | TINYINT(1) | O |  |  |  | 0 | 삭제 여부 |
+| 10 | created_at | DATETIME | O |  |  |  | CURRENT_TIMESTAMP | 생성 일시 |
+
+### 구현 메모
+
+- Story 이미지는 S3 저장을 우선으로 한다.
+- 초기 개발 상황에 따라 서버 로컬 저장을 허용하되, `storage_provider`로 구분한다.
+- Story 이미지는 생성 후 30일 동안 보관한다.
+- 보관 기간이 지난 이미지는 배치로 삭제하고 `deleted_yn = 1`로 표시한다.
 
 ---
 
@@ -672,6 +696,7 @@ retention_stage 1 : N user_retention_stage
 | `final_quest_selection_reason` | `VOTE_RANK`, `HOST_TIE_BREAK` |
 | `progress_status` | `TODO`, `DONE`, `CANCELED` |
 | `retention_stage` | `FIRST_DISCOVERY`, `ALLEY_EXPLORER`, `REGION_MASTER` |
+| `storage_provider` | `LOCAL`, `S3` |
 
 ---
 
@@ -691,17 +716,35 @@ retention_stage 1 : N user_retention_stage
 | 투표 마감 | 미투표자가 있어도 방장이 확인창 승인 후 마감할 수 있다. |
 | 투표 재오픈 | MVP에서는 제외한다. |
 | 동점 처리 | 방장이 동점 후보 중 직접 선택한다. |
-| 방장 이탈 | 일정 시간 방장 미진행 시 참여자가 권한 이어받기 버튼으로 요청한다. |
+| 방장 이탈 | 방장 마지막 진행 액션 이후 5분 동안 추가 진행이 없으면 참여자가 권한 이어받기 버튼으로 요청한다. |
 | 알림 | 푸시 알림은 제외하고 앱 내부 상태 표시로 대체한다. |
+| 초대 링크 만료 | 초대 링크는 생성 후 24시간 동안 유효하다. |
+| 탐험방 만료 | 탐험방은 생성 후 24시간이 지나면 만료 처리한다. |
+| 실시간 처리 | MVP에서는 HTTP 폴링을 사용한다. |
+| Story 저장 위치 | S3 저장을 우선으로 하며, 초기 개발 상황에 따라 서버 로컬 저장을 허용한다. |
+| Story 보관 기간 | Story 이미지와 Story 제작용 사진은 생성 후 30일 동안 보관한다. |
+| 초기 운영 데이터 | 초기 지역은 홍대, 성수, 망원 3개이며, 지역별 퀘스트 최소 10개와 범용 퀘스트 최소 10개를 준비한다. |
 
 ---
 
-## 9. 보완 필요 사항
+## 9. 초기 운영 데이터 기준
 
-- 실제 초기 지역 2~3개의 범위 확정
-- 지역별 퀘스트 8~12개 운영 데이터 확정
-- 초대 링크 만료 시간 확정
-- 탐험방 만료 시간 확정
-- 방장 권한 이어받기 버튼 활성화 기준 시간 확정
-- Story 이미지 저장 위치와 보관 기간 확정
-- 실시간 갱신 방식을 폴링, WebSocket, SSE 중 하나로 확정
+MVP 테스트와 초기 운영을 위해 아래 데이터를 먼저 준비한다.
+
+| 구분 | 기준 |
+| --- | --- |
+| 초기 지역 | 홍대, 성수, 망원 |
+| 지역별 퀘스트 | 지역별 최소 10개 |
+| 범용 퀘스트 | 최소 10개 |
+| 퀘스트 후보 제공 | 조건 기반 6개 |
+| 후보 부족 보충 | 지역별 후보 부족 시 범용 퀘스트로 보충 |
+| 조건 재설정 안내 | 범용 퀘스트까지 포함해도 후보 3개 미만이면 조건 재설정 안내 |
+
+초기 지역은 홍대, 성수, 망원으로 확정한다. 각 지역별 퀘스트 문구는 운영 데이터로 별도 확정한다.
+
+---
+
+## 10. 추후 보완 후보
+
+- S3 사용 확정 시 버킷명, 접근 URL 정책, 만료 파일 삭제 배치 확정
+- 지역별 퀘스트 운영 문구와 검수 기준 확정

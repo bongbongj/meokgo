@@ -17,7 +17,7 @@
 | `SERVER_PORT` | `8080` | 서버 포트 |
 | `DB_URL` | `jdbc:mysql://localhost:3306/meokgo_db?serverTimezone=Asia/Seoul&characterEncoding=UTF-8` | MySQL 연결 URL |
 | `DB_USERNAME` | `root` | DB 사용자 |
-| `DB_PASSWORD` | 빈 값 | DB 비밀번호 |
+| `DB_PASSWORD` | `meokgo` | DB 비밀번호 |
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:3000,http://localhost:5173,http://localhost:8081` | 허용할 프론트 개발 서버 Origin |
 
 루트의 `docker-compose.yml`로 MySQL을 실행하면 기본 비밀번호는 `meokgo`다.
@@ -40,6 +40,14 @@
 curl -H "X-Device-Key: local-device" http://localhost:8080/api/v1/health
 ```
 
+## Swagger
+
+```text
+http://localhost:8080/swagger-ui
+```
+
+`Authorize` 버튼에서 `X-Device-Key` 값을 입력하면 Swagger 요청에 기기 식별 헤더가 포함된다.
+
 ## 현재 세팅 범위
 
 - 공통 성공 응답 `ApiResponse`
@@ -56,3 +64,4 @@ curl -H "X-Device-Key: local-device" http://localhost:8080/api/v1/health
 - 지역 검색 및 분류 조회 API
 - 최근 선택 지역 조회 API
 - React Native, React 웹 개발 서버용 CORS 기본값
+- Swagger UI

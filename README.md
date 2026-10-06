@@ -63,6 +63,16 @@ cd server
 curl -H "X-Device-Key: local-device" http://localhost:8080/api/v1/health
 ```
 
+## Swagger
+
+서버 실행 후 브라우저에서 아래 주소로 API를 테스트할 수 있다.
+
+```text
+http://localhost:8080/swagger-ui
+```
+
+Swagger 우측 상단 `Authorize` 버튼에 `X-Device-Key` 값을 입력하면 공통 헤더가 포함된다.
+
 ## 다음 구현 순서
 
 1. 탐험방 생성, 초대 링크, 참여자 API 구현

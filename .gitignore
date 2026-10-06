@@ -1,0 +1,24 @@
+.DS_Store
+
+# Environment
+.env
+*.env
+!*.env.example
+
+# Java / Gradle
+build/
+.gradle/
+out/
+
+# Logs
+*.log
+
+# IDE
+.idea/
+.vscode/
+
+# Node / frontend future
+node_modules/
+dist/
+.expo/
+.next/

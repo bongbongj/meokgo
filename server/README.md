@@ -28,6 +28,12 @@
 ./gradlew bootRun
 ```
 
+MySQL 접속 설정 전 Swagger 화면만 먼저 확인하려면 H2 로컬 프로필로 실행한다.
+
+```bash
+SPRING_PROFILES_ACTIVE=local-h2 ./gradlew bootRun
+```
+
 ## 테스트
 
 ```bash

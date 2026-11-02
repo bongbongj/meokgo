@@ -38,6 +38,9 @@ yarn-error.*
 
 example
 
+# Claude Code
+.claude/
+
 # generated native folders
 /ios
 /android

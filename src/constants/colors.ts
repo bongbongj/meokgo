@@ -13,6 +13,8 @@ export const COLORS = {
   checkBorder: "#D4D4D4", // 빈 체크 원 테두리
   toastBg: "#1F1F22", // 토스트 배경
   regionChipBorder: "#F9B8AC", // 지역 칩 테두리
+  trackBg: "#ECECEC", // 막대 그래프 빈 영역 (디자인 08 투표 현황)
+  dim: "rgba(0, 0, 0, 0.5)", // 모달 배경 딤
 };
 
 // 프로필 팔레트 (개발 가이드 2장)

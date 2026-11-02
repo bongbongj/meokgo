@@ -51,8 +51,32 @@ export interface VoteStatus {
   }[];
 }
 
+export interface VoteClosePreview {
+  not_voted_participant_count: number;
+  confirmation_required: boolean;
+  reopen_supported: boolean;
+  top_candidates: {
+    candidate_id: number;
+    quest_title: string;
+    vote_count: number;
+  }[];
+}
+
+export interface VoteCloseResult {
+  room_id: number;
+  room_status: RoomStatus;
+  not_voted_participant_count: number;
+  reopen_supported: boolean;
+}
+
+export interface RoomState {
+  room_status: RoomStatus;
+  is_host: boolean;
+}
+
 // BE 미구현 API — 구현되면 false로 바꾸고 USE_MOCK.vote를 따르게 한다
-const VOTE_STATUS_API_PENDING = true;
+const VOTE_STATUS_API_PENDING = true; // GET /votes/status
+const VOTE_CLOSE_API_PENDING = true; // GET /votes/close-preview, POST /votes/close
 
 // ---------------------------------------------------------------------------
 // 더미 데이터 (API명세서 응답 구조 그대로)
@@ -68,6 +92,7 @@ const MOCK_CANDIDATE_TITLES: [string, string][] = [
 ];
 
 let mockMySelection: number[] = [];
+const mockClosedRooms = new Set<number>();
 
 const mockCandidates = (): QuestCandidateList => ({
   candidate_count: MOCK_CANDIDATE_TITLES.length,
@@ -92,6 +117,8 @@ const mockVoteStatus = (): VoteStatus => {
     { participant_id: 3, nickname: "현진", voted: false },
   ];
   const voted = participants.filter((p) => p.voted).length;
+  // 후보 번호별 득표수 (디자인 시안과 같은 값)
+  const votes: Record<number, number> = { 1: 2, 2: 1, 3: 2, 4: 1, 5: 0, 6: 0 };
   return {
     total_participant_count: participants.length,
     voted_participant_count: voted,
@@ -100,7 +127,25 @@ const mockVoteStatus = (): VoteStatus => {
     vote_status_text: `${participants.length}명 중 ${voted}명 투표 완료`,
     push_notification_enabled: false,
     participants,
-    candidate_results: [],
+    candidate_results: MOCK_CANDIDATE_TITLES.map(([title], index) => ({
+      candidate_id: index + 1,
+      quest_title: title,
+      vote_count: votes[index + 1] ?? 0,
+    })),
+  };
+};
+
+const mockClosePreview = (): VoteClosePreview => {
+  const status = mockVoteStatus();
+  const top = Math.max(...status.candidate_results.map((c) => c.vote_count));
+  return {
+    not_voted_participant_count:
+      status.total_participant_count - status.voted_participant_count,
+    confirmation_required: true,
+    reopen_supported: false,
+    top_candidates: status.candidate_results.filter(
+      (c) => top > 0 && c.vote_count === top,
+    ),
   };
 };
 
@@ -156,15 +201,47 @@ export const fetchVoteStatus = async (roomId: number): Promise<VoteStatus> => {
   return api.get<VoteStatus>(`/rooms/${roomId}/votes/status`);
 };
 
+/** 투표 마감 확인 정보 조회 (BE 미구현 — 현재 더미) */
+export const fetchVoteClosePreview = async (
+  roomId: number,
+): Promise<VoteClosePreview> => {
+  if (VOTE_CLOSE_API_PENDING || USE_MOCK.vote) {
+    return mockResolve(mockClosePreview());
+  }
+  return api.get<VoteClosePreview>(`/rooms/${roomId}/votes/close-preview`);
+};
+
+/** 투표 마감 — 방장이 확인창을 승인한 뒤 호출 (BE 미구현 — 현재 더미) */
+export const closeVote = async (roomId: number): Promise<VoteCloseResult> => {
+  if (VOTE_CLOSE_API_PENDING || USE_MOCK.vote) {
+    mockClosedRooms.add(roomId);
+    return mockResolve({
+      room_id: roomId,
+      room_status: "VOTE_CLOSED",
+      not_voted_participant_count: mockClosePreview().not_voted_participant_count,
+      reopen_supported: false,
+    });
+  }
+  return api.post<VoteCloseResult>(`/rooms/${roomId}/votes/close`, {
+    confirmed: true,
+  });
+};
+
 /**
- * 방 상태 조회 — 투표 마감 시 퀘스트 확정 화면으로 자동 전환하는 데 사용
+ * 방 상태와 내 방장 여부 조회
+ * - 방장이면 08 투표 현황, 아니면 09 투표 대기를 보여준다
+ * - 투표 마감 시 퀘스트 확정 화면으로 자동 전환하는 데 사용
+ * - 더미: 방 번호가 홀수면 방장, 짝수면 참가자 (화면 확인용)
  * TODO: FE1의 roomApi.ts가 생기면 그쪽 함수로 교체
  */
-export const fetchRoomStatus = async (roomId: number): Promise<RoomStatus> => {
-  if (USE_MOCK.room) return mockResolve<RoomStatus>("VOTING");
+export const fetchRoomState = async (roomId: number): Promise<RoomState> => {
+  if (USE_MOCK.room) {
+    return mockResolve<RoomState>({
+      room_status: mockClosedRooms.has(roomId) ? "VOTE_CLOSED" : "VOTING",
+      is_host: roomId % 2 === 1,
+    });
+  }
 
-  const data = await api.get<{ room_status: RoomStatus }>(
-    `/rooms/${roomId}/waiting-status`,
-  );
-  return data.room_status;
+  const data = await api.get<RoomState>(`/rooms/${roomId}/waiting-status`);
+  return { room_status: data.room_status, is_host: data.is_host };
 };

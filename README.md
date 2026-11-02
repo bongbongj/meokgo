@@ -36,9 +36,11 @@ npx expo start          # 웹만 실행: npx expo start --web (포트 8081)
 ### 더미 모드 (기본)
 
 `.env`의 `EXPO_PUBLIC_USE_MOCK=true` 상태에서는 BE 없이 동작하며, 방 번호는 아무 숫자나 됩니다.
+더미 모드에서는 **방 번호가 홀수면 방장, 짝수면 참가자**로 동작합니다.
 
 - 07 퀘스트 투표: `http://localhost:8081/rooms/1/vote`
-- 09 투표 대기: `http://localhost:8081/rooms/1/vote-status`
+- 08 투표 현황(방장): `http://localhost:8081/rooms/1/vote-status`
+- 09 투표 대기(참가자): `http://localhost:8081/rooms/2/vote-status`
 
 ### 실제 BE 모드
 
@@ -139,17 +141,25 @@ try { ... } catch (e) {
 | `/records/:recordId/story` | 15 기록 남기기 | FE2 |
 | `/records/:recordId/preview` | 16 기록 미리보기 | FE2 |
 
-- 구현 완료: 07 퀘스트 투표, 09 투표 대기. 나머지 FE2 화면은 임시 화면(`ScreenPlaceholder`)입니다.
-- 08 투표 현황(방장)은 BE 투표 현황·마감 API 구현 후 `vote-status`에 추가 예정입니다.
+- 구현 완료: 07 퀘스트 투표, 08 투표 현황(방장), 08-1 투표 마감 확인, 09 투표 대기. 나머지 FE2 화면은 임시 화면(`ScreenPlaceholder`)입니다.
 - FE1 → FE2 연결: 06 참여 대기에서 `` router.replace(`/rooms/${roomId}/vote`) ``
 
-### 07 퀘스트 투표 / 09 투표 대기 동작
+### 07 ~ 09 투표 화면 동작
 
 - 07: 후보 6개 중 1~3개 선택 (0개면 버튼 비활성, 3개 선택 후 추가 선택은 반응 없음). 이미 투표했다면 기존 선택을 복원하고, 제출 시 덮어씁니다.
-- 09: 화면 진입 시 1회 + 5초 간격으로 투표 현황과 방 상태를 조회합니다. 앱이 백그라운드로 가면 폴링을 멈춥니다.
+- 08 / 09: 같은 주소(`vote-status`)에서 `waiting-status`의 `is_host`로 방장이면 08, 아니면 09를 보여줍니다.
+- 08 / 09: 화면 진입 시 1회 + 5초 간격으로 투표 현황과 방 상태를 조회합니다. 앱이 백그라운드로 가면 폴링을 멈춥니다.
+- 08: 퀘스트별 득표 막대(득표가 있는 퀘스트만, 막대 길이 = 득표수 / 전체 인원). 득표 합계가 0이면 마감 버튼 비활성.
+- 08-1: 마감하기 → 확인창(미투표 인원, 현재 득표 1위) → 마감 후 10 퀘스트 확정으로 이동. 취소·딤 영역을 누르면 닫힘.
 - 09: 방 상태가 `VOTE_CLOSED` / `QUEST_CONFIRMED`면 10 퀘스트 확정, `IN_PROGRESS`면 11 탐험 진행 중으로 자동 이동합니다.
-- 09의 참여자별 투표 상태는 BE `GET /votes/status` 미구현으로 **더미**입니다. 구현되면 `voteApi.ts`의 `VOTE_STATUS_API_PENDING`을 `false`로 바꿉니다.
-- 방 상태는 임시로 `voteApi.ts`의 `fetchRoomStatus()`(`waiting-status` 사용)로 조회합니다. FE1의 `roomApi.ts`가 생기면 교체합니다.
+- BE 미구현으로 **더미**인 API: 투표 현황(`VOTE_STATUS_API_PENDING`), 마감 확인·마감(`VOTE_CLOSE_API_PENDING`). 구현되면 `voteApi.ts`의 해당 값을 `false`로 바꿉니다.
+- 방 상태 / 방장 여부는 임시로 `voteApi.ts`의 `fetchRoomState()`(`waiting-status` 사용)로 조회합니다. FE1의 `roomApi.ts`가 생기면 교체합니다.
+
+### 결정 사항
+
+| 항목 | 결정 | 근거 |
+| --- | --- | --- |
+| 최종 퀘스트 동점 처리 | **재투표 없이 방장이 동점 후보 중 직접 선택** (`POST /final-quests/tie-break`) | API명세서가 최신 기준. 기능명세서의 "먼저 투표된 퀘스트 → 후보 표시 순서로 자동 선정"은 적용하지 않음 |
 
 ## 공통 컴포넌트 · 훅
 
@@ -160,6 +170,7 @@ try { ... } catch (e) {
 | `components/common/LogoHeader.tsx` | 로고 + 큰 타이틀 (24) + 안내 문구 |
 | `components/common/CheckCircle.tsx` | 체크 원 (26px, 미선택 테두리 1.5px) |
 | `components/common/Avatar.tsx` | 닉네임 첫 글자 아바타. 배경색 = 첫 글자 유니코드 % 6 → `PROFILE_PALETTE` |
+| `components/common/ConfirmDialog.tsx` | 확인창 (딤 + 모달, 취소 / 확인). `children`으로 추가 정보 표시 |
 | `hooks/usePolling.ts` | 5초 폴링. 백그라운드에서 중단, 복귀 시 재개, 이전 요청 완료 전 중복 요청 없음 |
 | `constants/colors.ts` | 개발 가이드 컬러 토큰 + `PROFILE_PALETTE` (6색) |
 
@@ -177,9 +188,10 @@ try { ... } catch (e) {
 
 07 / 09 화면으로 확인: 후보 미생성(`QUEST-002`) 시 생성 후 재조회, 첫 투표 POST, 수정 PUT, 기존 선택 복원, `waiting-status` 5초 폴링 정상.
 
-- BE 미구현으로 FE에서 더미 처리 중: `GET /votes/status`
-- BE 미구현이라 08 / 08-1 화면 보류: `GET /votes/close-preview`, `POST /votes/close`
-- 투표 마감 API가 없어 09 → 10 자동 이동은 미확인
+08 / 09 화면으로 확인: 실제 `is_host` 값으로 방장(08) / 초대 참여자(09) 화면 분기 정상.
+
+- BE 미구현으로 FE에서 더미 처리 중: `GET /votes/status`, `GET /votes/close-preview`, `POST /votes/close`
+- 투표 마감 API가 없어 실제 마감 후 참가자 09 → 10 자동 이동은 미확인
 
 - CORS: FE 웹 개발 서버는 `http://localhost:8081` (BE 기본 허용 목록에 포함)
 - 확인 요청 사항

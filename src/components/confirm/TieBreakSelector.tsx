@@ -1,5 +1,5 @@
 // src/components/confirm/TieBreakSelector.tsx
-// 동점 후보 선택 (방장) — 디자인 시안 없음, 07 퀘스트 투표 목록과 같은 모양
+// 동점 후보 선택 (방장) — 디자인 시안 없음, 09 퀘스트 투표 목록과 같은 모양
 // 그룹마다 required_select_count개까지만 선택할 수 있다
 
 import React from "react";

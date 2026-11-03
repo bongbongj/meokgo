@@ -8,5 +8,5 @@ interface StoryScreenProps {
 }
 
 export default function StoryScreen({ recordId }: StoryScreenProps) {
-  return <ScreenPlaceholder title="15. 기록 남기기" params={{ recordId }} />;
+  return <ScreenPlaceholder title="16. 스토리 템플릿 선택" params={{ recordId }} />;
 }

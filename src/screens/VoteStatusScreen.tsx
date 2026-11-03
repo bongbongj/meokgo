@@ -1,9 +1,9 @@
 // src/screens/VoteStatusScreen.tsx
-// 08. 투표 현황 (방장) / 09. 투표 대기 (참가자)
+// 09-1. 투표 현황 (방장) / 10. 투표 대기 (참가자)
 // - 방장 여부에 따라 화면을 나눈다 (같은 주소: /rooms/:roomId/vote-status)
 // - 참여자별 투표 상태를 화면 진입 시 1회 + 5초 간격으로 갱신
-// - 방장: 퀘스트별 득표 확인, 투표 마감하기 → 08-1 마감 확인창 → 퀘스트 확정 화면
-// - 참가자: 투표 수정하기 → 07 퀘스트 투표, 방장이 마감하면 퀘스트 확정 화면으로 자동 전환
+// - 방장: 퀘스트별 득표 확인, 투표 마감하기 → 09-2 마감 확인창 → 퀘스트 확정 화면
+// - 참가자: 투표 수정하기 → 09 퀘스트 투표, 방장이 마감하면 퀘스트 확정 화면으로 자동 전환
 
 import React, { useCallback, useState } from "react";
 import {
@@ -29,7 +29,7 @@ import {
 } from "../api/voteApi";
 import type { RoomStatus } from "../api/types";
 import usePolling from "../hooks/usePolling";
-import NavHeader from "../components/common/NavHeader";
+import { NavHeader } from "../components/ScreenHeader";
 import PrimaryButton from "../components/common/PrimaryButton";
 import ConfirmDialog from "../components/common/ConfirmDialog";
 import ParticipantVoteList from "../components/vote/ParticipantVoteList";
@@ -60,7 +60,7 @@ export default function VoteStatusScreen({ roomId }: VoteStatusScreenProps) {
   const [status, setStatus] = useState<VoteStatus | null>(null);
   const [isHost, setIsHost] = useState<boolean | null>(null);
 
-  // 08-1 투표 마감 확인창
+  // 09-2 투표 마감 확인창
   // 닫힐 때 페이드아웃 동안 문구가 바뀌지 않도록 표시 여부와 내용을 따로 둔다
   const [dialogVisible, setDialogVisible] = useState(false);
   const [preview, setPreview] = useState<VoteClosePreview | null>(null);
@@ -140,7 +140,7 @@ export default function VoteStatusScreen({ roomId }: VoteStatusScreenProps) {
             <ActivityIndicator color={COLORS.primary} />
           </View>
         ) : isHost ? (
-          // 08. 투표 현황 (방장)
+          // 09-1. 투표 현황 (방장)
           <>
             <ScrollView
               contentContainerStyle={styles.scrollContent}
@@ -181,7 +181,7 @@ export default function VoteStatusScreen({ roomId }: VoteStatusScreenProps) {
               </Text>
             </View>
 
-            {/* 08-1. 투표 마감 확인 */}
+            {/* 09-2. 투표 마감 확인 */}
             <ConfirmDialog
               visible={dialogVisible}
               title="투표를 마감할까요?"
@@ -208,7 +208,7 @@ export default function VoteStatusScreen({ roomId }: VoteStatusScreenProps) {
             </ConfirmDialog>
           </>
         ) : (
-          // 09. 투표 대기 (참가자)
+          // 10. 투표 대기 (참가자)
           <>
             <ScrollView
               contentContainerStyle={styles.scrollContent}
@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
   scrollContent: { paddingBottom: verticalScale(24) },
   section: { paddingHorizontal: scale(20) },
 
-  // 08
+  // 09-1
   intro: {
     paddingHorizontal: scale(20),
     paddingTop: verticalScale(8),
@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  // 09
+  // 10
   doneCard: {
     alignItems: "center",
     paddingTop: verticalScale(40),

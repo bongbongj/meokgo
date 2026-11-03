@@ -7,13 +7,61 @@ import {
   Text,
   Image,
   TouchableOpacity,
-  SafeAreaView,
   StatusBar,
   ScrollView,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { SymbolView, type SymbolViewProps } from "expo-symbols";
+import { router } from "expo-router";
 import { COLORS } from "../constants/colors";
 import { scale, verticalScale, moderateScale } from "../utils/responsive";
-import { fetchHomeData, HomeData, HomeMockType } from "../api/homeApi";
+import {
+  ActiveRoom,
+  fetchHomeData,
+  HomeData,
+  HomeMockType,
+  IS_HOME_MOCK,
+} from "../api/homeApi";
+import { formatCompactDotDate } from "../utils/date";
+import SplashScreen from "./SplashScreen";
+
+// 하단 탭 (아이콘 파일 전달 전까지 시스템 심볼 사용)
+const TABS: {
+  label: string;
+  icon: SymbolViewProps["name"];
+  href: "/home" | "/condition" | "/records";
+}[] = [
+  { label: "홈", icon: { ios: "house", android: "home", web: "home" }, href: "/home" },
+  {
+    label: "탐험",
+    icon: { ios: "safari", android: "explore", web: "explore" },
+    href: "/condition",
+  },
+  {
+    label: "내 기록",
+    icon: { ios: "person", android: "person", web: "person" },
+    href: "/records",
+  },
+];
+
+// 이어하기 / 투표 현황 보기: 방 상태별 이동 화면 (FE 협업 규칙 4.3)
+const goActiveRoom = ({ room_id, room_status }: ActiveRoom) => {
+  switch (room_status) {
+    case "WAITING":
+      router.push({ pathname: "/waiting/[roomId]", params: { roomId: String(room_id) } });
+      break;
+    case "VOTING":
+      router.push(`/rooms/${room_id}/vote-status`);
+      break;
+    case "VOTE_CLOSED":
+    case "QUEST_CONFIRMED":
+      router.push(`/rooms/${room_id}/confirm`);
+      break;
+    case "IN_PROGRESS":
+      router.push(`/rooms/${room_id}/progress`);
+      break;
+  }
+};
 
 export default function HomeScreen() {
   const [mockType, setMockType] = useState<HomeMockType>("VOTING");
@@ -21,9 +69,13 @@ export default function HomeScreen() {
 
   // API 데이터 호출
   useEffect(() => {
+    let ignore = false; // 늦게 도착한 이전 응답이 덮어쓰지 않도록
     fetchHomeData(mockType).then((res) => {
-      if (res.success) setHomeData(res.data);
+      if (!ignore && res.success) setHomeData(res.data);
     });
+    return () => {
+      ignore = true;
+    };
   }, [mockType]);
 
   const activeRoom = homeData?.active_room;
@@ -38,12 +90,16 @@ export default function HomeScreen() {
     ? (activeRoom?.voted_participant_count ?? 0)
     : (activeRoom?.completed_quest_count ?? 0);
 
+  // 첫 데이터 로딩 중에는 스플래시 (상태에 맞는 02 / 02-1 / 02-2 화면을 바로 보여주기 위해)
+  if (!homeData) return <SplashScreen />;
+
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
 
       <View style={styles.mobileWrapper}>
-        {/* 상단 테스트용 전환 탭 */}
+        {/* 상단 테스트용 전환 탭 (개발 모드 + 더미일 때만) */}
+        {__DEV__ && IS_HOME_MOCK && (
         <View style={styles.testBar}>
           {(["EMPTY", "ACTIVE", "VOTING"] as HomeMockType[]).map((type) => (
             <TouchableOpacity
@@ -64,12 +120,13 @@ export default function HomeScreen() {
             </TouchableOpacity>
           ))}
         </View>
+        )}
 
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* 헤더 (40x40 로고) */}
+          {/* 헤더 (32x32 로고) */}
           <View style={styles.header}>
             <View style={styles.logoRow}>
               <TouchableOpacity activeOpacity={0.8}>
@@ -88,7 +145,10 @@ export default function HomeScreen() {
 
           {/* 히어로 배너 */}
           {!activeRoom ? (
-            <TouchableOpacity style={styles.heroBanner} activeOpacity={0.9}>
+            <TouchableOpacity
+              style={[styles.heroBanner, styles.heroBannerEmpty]}
+              activeOpacity={0.9}
+            >
               <Text style={styles.heroEmptyText}>
                 진행 중인 탐험이 없어요{"\n"}친구들과 탐험을 시작해보세요
               </Text>
@@ -124,7 +184,11 @@ export default function HomeScreen() {
                 ))}
               </View>
 
-              <TouchableOpacity style={styles.heroButton} activeOpacity={0.8}>
+              <TouchableOpacity
+                style={styles.heroButton}
+                activeOpacity={0.8}
+                onPress={() => goActiveRoom(activeRoom)}
+              >
                 <Text style={styles.heroButtonText}>
                   {isVoting ? "투표 현황 보기" : "이어하기"}
                 </Text>
@@ -140,7 +204,11 @@ export default function HomeScreen() {
                 지역을 고르고 퀘스트를 함께 선택해요
               </Text>
             </View>
-            <TouchableOpacity style={styles.arrowCircle} activeOpacity={0.8}>
+            <TouchableOpacity
+              style={styles.arrowCircle}
+              activeOpacity={0.8}
+              onPress={() => router.push("/condition")}
+            >
               <Text style={styles.arrowText}>→</Text>
             </TouchableOpacity>
           </View>
@@ -158,8 +226,26 @@ export default function HomeScreen() {
                     key={region.region_id}
                     style={styles.popularItem}
                     activeOpacity={0.7}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/condition",
+                        params: {
+                          regionId: String(region.region_id),
+                          regionName: region.region_name,
+                        },
+                      })
+                    }
                   >
-                    <View style={styles.popularCircle} />
+                    {/* 지역 대표 이미지 (없으면 회색 기본 원) */}
+                    {region.region_image_url ? (
+                      <Image
+                        source={{ uri: region.region_image_url }}
+                        style={styles.popularCircle}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <View style={styles.popularCircle} />
+                    )}
                     <Text style={styles.popularText}>{region.region_name}</Text>
                   </TouchableOpacity>
                 ))}
@@ -171,8 +257,18 @@ export default function HomeScreen() {
                     key={record.record_id}
                     style={styles.recentCard}
                     activeOpacity={0.8}
+                    onPress={() => router.push(`/records/${record.record_id}`)}
                   >
-                    <View style={styles.recentImageDummy} />
+                    {/* 기록 썸네일 (없으면 회색 기본 이미지) */}
+                    {record.thumbnail_url ? (
+                      <Image
+                        source={{ uri: record.thumbnail_url }}
+                        style={styles.recentImageDummy}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <View style={styles.recentImageDummy} />
+                    )}
                     <View style={styles.recentBadge}>
                       <Text style={styles.recentBadgeText}>
                         {record.region_name}
@@ -181,7 +277,9 @@ export default function HomeScreen() {
                     <Text style={styles.recentTitle}>
                       {record.region_name} 탐험
                     </Text>
-                    <Text style={styles.recentDate}>{record.created_at}</Text>
+                    <Text style={styles.recentDate}>
+                      {formatCompactDotDate(record.created_at)}
+                    </Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -191,15 +289,29 @@ export default function HomeScreen() {
 
         {/* 하단 알약 탭바 */}
         <View style={styles.bottomTabBar}>
-          <TouchableOpacity style={styles.tabItem} activeOpacity={0.7}>
-            <Text style={[styles.tabText, styles.tabActive]}>홈</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.tabItem} activeOpacity={0.7}>
-            <Text style={styles.tabText}>탐험</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.tabItem} activeOpacity={0.7}>
-            <Text style={styles.tabText}>내 기록</Text>
-          </TouchableOpacity>
+          {TABS.map((tab, idx) => {
+            const isActive = idx === 0;
+            const color = isActive ? COLORS.primary : COLORS.textMain;
+            return (
+              <TouchableOpacity
+                key={tab.label}
+                style={[styles.tabItem, isActive && styles.tabItemActive]}
+                activeOpacity={0.7}
+                onPress={() => !isActive && router.push(tab.href)}
+              >
+                <SymbolView
+                  name={tab.icon}
+                  size={moderateScale(24)}
+                  tintColor={color}
+                />
+                <Text
+                  style={[styles.tabText, { color }, isActive && styles.tabTextActive]}
+                >
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </View>
     </SafeAreaView>
@@ -215,7 +327,7 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     position: "relative",
   },
-  scrollContent: { paddingBottom: verticalScale(100) },
+  scrollContent: { paddingBottom: verticalScale(120) },
 
   testBar: {
     flexDirection: "row",
@@ -234,42 +346,45 @@ const styles = StyleSheet.create({
 
   header: {
     paddingHorizontal: scale(20),
-    paddingTop: verticalScale(16),
+    paddingTop: verticalScale(10),
     paddingBottom: verticalScale(16),
   },
   logoRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: verticalScale(8),
+    marginBottom: verticalScale(14),
   },
-  headerLogo: { width: scale(40), height: scale(40), marginRight: scale(8) },
+  headerLogo: { width: scale(32), height: scale(32), marginRight: scale(10) },
   headerTitle: {
     fontSize: moderateScale(24),
     fontWeight: "bold",
     color: COLORS.textMain,
   },
-  greetingText: { fontSize: moderateScale(13), color: COLORS.textSub },
+  greetingText: { fontSize: moderateScale(15), color: COLORS.textSub },
 
   heroBanner: {
     width: "100%",
     height: verticalScale(215),
     backgroundColor: COLORS.primary,
-    padding: scale(20),
+    paddingHorizontal: scale(22),
+    paddingVertical: verticalScale(20),
     justifyContent: "center",
   },
+  heroBannerEmpty: { paddingHorizontal: scale(30) },
   heroEmptyText: {
-    fontSize: moderateScale(24),
+    fontSize: moderateScale(20),
     fontWeight: "bold",
     color: COLORS.background,
-    lineHeight: moderateScale(32),
+    lineHeight: moderateScale(28),
   },
   heroBadge: {
     alignSelf: "flex-start",
     backgroundColor: "rgba(255,255,255,0.2)",
-    paddingHorizontal: scale(10),
-    paddingVertical: verticalScale(4),
+    height: verticalScale(23),
+    paddingHorizontal: scale(11),
     borderRadius: scale(12),
-    marginBottom: verticalScale(12),
+    justifyContent: "center",
+    marginBottom: verticalScale(10),
   },
   heroBadgeText: {
     color: COLORS.background,
@@ -283,20 +398,20 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(8),
   },
   heroSubText: {
-    fontSize: moderateScale(13),
+    fontSize: moderateScale(15),
     color: COLORS.background,
-    marginBottom: verticalScale(16),
+    marginBottom: verticalScale(14),
   },
 
   progressBar: {
     flexDirection: "row",
-    gap: scale(8),
-    marginBottom: verticalScale(20),
+    gap: scale(6),
+    marginBottom: verticalScale(16),
   },
   progressSegment: {
     flex: 1,
-    height: verticalScale(4),
-    borderRadius: scale(2),
+    height: verticalScale(6),
+    borderRadius: scale(3),
   },
   progressFill: { backgroundColor: COLORS.background },
   progressEmpty: { backgroundColor: "rgba(255,255,255,0.3)" },
@@ -305,7 +420,7 @@ const styles = StyleSheet.create({
     width: "100%",
     height: verticalScale(45),
     backgroundColor: COLORS.background,
-    borderRadius: scale(14),
+    borderRadius: scale(18),
     justifyContent: "center",
     alignItems: "center",
   },
@@ -321,7 +436,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.cardBg,
     borderRadius: scale(28),
     alignSelf: "center",
-    marginTop: verticalScale(20),
+    marginTop: verticalScale(14),
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -350,17 +465,17 @@ const styles = StyleSheet.create({
   },
 
   sectionContainer: {
-    marginTop: verticalScale(32),
+    marginTop: verticalScale(40),
     paddingHorizontal: scale(20),
   },
   sectionTitle: {
-    fontSize: moderateScale(18),
+    fontSize: moderateScale(20),
     fontWeight: "bold",
     color: COLORS.textMain,
-    marginBottom: verticalScale(16),
+    marginBottom: verticalScale(14),
   },
 
-  popularRow: { flexDirection: "row", justifyContent: "space-between" },
+  popularRow: { flexDirection: "row", justifyContent: "space-evenly" },
   popularItem: { alignItems: "center" },
   popularCircle: {
     width: scale(65),
@@ -375,56 +490,69 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
 
-  recentRow: { flexDirection: "row", justifyContent: "space-between" },
-  recentCard: { width: scale(171.5), height: verticalScale(219) },
+  recentRow: { flexDirection: "row", gap: scale(10) },
+  recentCard: { flex: 1 },
   recentImageDummy: {
     width: "100%",
-    height: verticalScale(120),
+    height: verticalScale(130),
     backgroundColor: "#ddd",
-    borderRadius: scale(12),
-    marginBottom: verticalScale(12),
+    borderRadius: scale(8),
+    marginBottom: verticalScale(4),
   },
   recentBadge: {
     alignSelf: "flex-start",
+    height: verticalScale(24),
+    justifyContent: "center",
     borderWidth: 1,
-    borderColor: COLORS.primary,
-    paddingHorizontal: scale(8),
-    paddingVertical: verticalScale(2),
-    borderRadius: scale(10),
+    borderColor: COLORS.chipBorder,
+    paddingHorizontal: scale(10),
+    borderRadius: scale(12),
+    marginLeft: scale(4),
     marginBottom: verticalScale(8),
   },
-  recentBadgeText: { fontSize: moderateScale(11), color: COLORS.primary },
+  recentBadgeText: { fontSize: moderateScale(12), color: COLORS.primary },
   recentTitle: {
-    fontSize: moderateScale(15),
-    fontWeight: "bold",
+    fontSize: moderateScale(16),
+    fontWeight: "500",
     color: COLORS.textMain,
-    marginBottom: verticalScale(4),
+    marginLeft: scale(5),
+    marginBottom: verticalScale(2),
   },
-  recentDate: { fontSize: moderateScale(12), color: COLORS.textSub },
+  recentDate: {
+    fontSize: moderateScale(14),
+    fontWeight: "bold",
+    color: COLORS.textSub,
+    marginLeft: scale(5),
+  },
 
   bottomTabBar: {
     position: "absolute",
-    bottom: verticalScale(30),
-    width: scale(294),
-    height: verticalScale(54),
-    backgroundColor: COLORS.background,
-    borderRadius: scale(27),
+    bottom: verticalScale(36),
+    width: scale(302),
+    height: verticalScale(62),
+    backgroundColor: COLORS.cardBg,
+    borderRadius: scale(31),
     alignSelf: "center",
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-around",
-    paddingHorizontal: scale(8),
+    padding: scale(3),
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.12,
     shadowRadius: 12,
     elevation: 5,
   },
-  tabItem: { flex: 1, alignItems: "center", justifyContent: "center" },
+  tabItem: {
+    flex: 1,
+    height: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: scale(28),
+  },
+  tabItemActive: { backgroundColor: COLORS.tabActiveBg },
   tabText: {
-    fontSize: moderateScale(12),
-    color: COLORS.textSub,
+    fontSize: moderateScale(11),
     marginTop: verticalScale(4),
   },
-  tabActive: { color: COLORS.primary, fontWeight: "bold" },
+  tabTextActive: { fontWeight: "bold" },
 });

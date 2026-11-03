@@ -1,17 +1,17 @@
 // src/components/vote/ParticipantVoteList.tsx
-// 참여자별 투표 상태 목록 (08 투표 현황 / 09 투표 대기)
+// 참여자별 투표 상태 목록 (09-1 투표 현황 / 10 투표 대기)
 
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { COLORS } from "../../constants/colors";
 import { moderateScale, scale, verticalScale } from "../../utils/responsive";
 import type { VoteStatus } from "../../api/voteApi";
-import Avatar from "../common/Avatar";
+import ProfileAvatar from "../ProfileAvatar";
 
 interface ParticipantVoteListProps {
   title: string;
   status: VoteStatus | null;
-  avatarSize?: number; // 08: 34, 09: 36
+  avatarSize?: number; // 09-1: 34, 10: 36
 }
 
 export default function ParticipantVoteList({
@@ -33,7 +33,7 @@ export default function ParticipantVoteList({
 
       {status?.participants.map((participant) => (
         <View key={participant.participant_id} style={styles.row}>
-          <Avatar nickname={participant.nickname} size={avatarSize} />
+          <ProfileAvatar nickname={participant.nickname} size={scale(avatarSize)} />
           <Text style={styles.nickname}>{participant.nickname}</Text>
           <Text
             style={[

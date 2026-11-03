@@ -7,7 +7,7 @@ import { StyleSheet, Text, SafeAreaView } from "react-native";
 import { COLORS } from "../../constants/colors";
 
 interface ScreenPlaceholderProps {
-  title: string; // 예: "07. 퀘스트 투표"
+  title: string; // 예: "09. 퀘스트 투표"
   params?: Record<string, string | number | undefined>;
 }
 

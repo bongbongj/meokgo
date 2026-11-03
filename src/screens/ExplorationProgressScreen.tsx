@@ -8,5 +8,5 @@ interface ExplorationProgressScreenProps {
 }
 
 export default function ExplorationProgressScreen({ roomId }: ExplorationProgressScreenProps) {
-  return <ScreenPlaceholder title="11. 탐험 진행 중" params={{ roomId }} />;
+  return <ScreenPlaceholder title="10-2. 퀘스트 진행" params={{ roomId }} />;
 }

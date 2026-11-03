@@ -1,7 +1,7 @@
 // src/screens/QuestConfirmScreen.tsx
-// 10. 퀘스트 확정
+// 10-1. 퀘스트 확정
 // - 방장: 화면 진입 시 미리보기 조회 → 동점 없으면 자동 확정, 동점 있으면 동점 후보 직접 선택 후 확정
-// - 방장: 탐험 시작하기 → 11 탐험 진행 중
+// - 방장: 탐험 시작하기 → 10-2 퀘스트 진행
 // - 참가자: 방장이 확정할 때까지 대기 → 확정된 퀘스트 표시 → 방장이 탐험을 시작하면 자동 이동
 // - 방 상태를 화면 진입 시 1회 + 5초 간격으로 확인
 
@@ -31,7 +31,7 @@ import {
 } from "../api/finalQuestApi";
 import { startExploration } from "../api/explorationApi";
 import usePolling from "../hooks/usePolling";
-import NavHeader from "../components/common/NavHeader";
+import { NavHeader } from "../components/ScreenHeader";
 import PrimaryButton from "../components/common/PrimaryButton";
 import ExplorationSummaryCard from "../components/confirm/ExplorationSummaryCard";
 import FinalQuestCard from "../components/confirm/FinalQuestCard";

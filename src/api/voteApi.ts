@@ -229,7 +229,7 @@ export const closeVote = async (roomId: number): Promise<VoteCloseResult> => {
 
 /**
  * 방 상태와 내 방장 여부 조회
- * - 방장이면 08 투표 현황, 아니면 09 투표 대기를 보여준다
+ * - 방장이면 09-1 투표 현황, 아니면 10 투표 대기를 보여준다
  * - 투표 마감 시 퀘스트 확정 화면으로 자동 전환하는 데 사용
  * - 더미: 방 번호 규칙은 mockRooms.ts 참고
  * TODO: FE1의 roomApi.ts가 생기면 그쪽 함수로 교체
@@ -261,7 +261,7 @@ export interface RoomDetail {
 const ROOM_DETAIL_API_PENDING = true;
 
 /**
- * 탐험방 상세 조회 (10 퀘스트 확정의 탐험 요약 카드)
+ * 탐험방 상세 조회 (10-1 퀘스트 확정의 탐험 요약 카드)
  * TODO: FE1의 roomApi.ts가 생기면 그쪽 함수로 교체
  */
 export const fetchRoomDetail = async (roomId: number): Promise<RoomDetail> => {

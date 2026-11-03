@@ -1,6 +1,6 @@
 # 먹으러GO FE 협업 규칙
 
-> 작성 기준일: 2026-11-02
+> 작성 기준일: 2026-11-02 (수정: 2026-11-03 — 화면 번호를 Figma 프레임 기준으로 변경, FE1 브랜치 통합: 라우트·공통 컴포넌트·컬러 토큰은 FE1 기준)
 >
 > 기준 서비스: 먹으러GO
 >
@@ -21,7 +21,8 @@
 
 | 참조 문서 | 반영 내용 |
 | --- | --- |
-| `먹으러고 기능명세서` (Notion) | 기능 69개, FE1 / FE2 / BE 담당 구분, 화면 번호, 우선순위, 기한 |
+| [Figma `먹 디자인`](https://www.figma.com/design/2JyLuF8Hjp9m2iQLUcTZWO/) | **화면 번호와 화면 이름의 기준** — 프레임 이름 (`00. 앱 진입화면` ~ `18_탐험 종료`) |
+| `먹으러고 기능명세서` (Notion) | 기능 69개, FE1 / FE2 / BE 담당 구분, 우선순위, 기한 (화면 번호는 이전 번호 → 2장 대조표 참고) |
 | `API명세서.md` | Base URL, `X-Device-Key` 헤더, 공통 응답 / 오류 형식, Enum, 화면별 API 매핑, 폴링 주기 |
 | `DB설계서.md` | 기기 기반 사용자 식별, 같은 기기 참여 복구, 상태값 관리 원칙 |
 | `먹으러GO 개발 가이드.md` | 컬러 토큰, 프로필 팔레트, 타이포그래피, 컴포넌트 규격, 닉네임 / 사진 / 퀘스트 규칙 |
@@ -31,26 +32,65 @@
 
 ## 2. 담당 범위
 
-기능명세서의 담당 컬럼 기준이다.
+화면 번호와 이름은 Figma `먹 디자인`의 프레임 이름 기준, 담당은 기능명세서의 담당 컬럼 기준이다.
 
 | 담당 | 화면 번호 | 화면 |
 | --- | --- | --- |
-| FE1 | 00 ~ 06 | 스플래시, 닉네임 설정, 홈, 하단 내비게이션, 탐험 지역 선택, 오늘의 탐험 설정, 탐험방 생성 완료, 초대 링크 참여, 참여 대기(방장 / 참가자 / 방장 미접속) |
-| FE2 | 07 ~ 16 | 퀘스트 투표, 투표 현황, 투표 마감 확인, 투표 대기, 퀘스트 확정, 탐험 진행 중, 탐험 종료, 내 기록, 닉네임 변경, 탐험 기록 상세, 기록 남기기, 기록 미리보기 |
+| FE1 | 00 ~ 08 | 앱 진입화면, 닉네임 설정, 홈(진행 중인 탐험 있음 / 없음 / 투표 대기 중), 하단 내비게이션, 조건 선택, 지역 선택, 초대장, 친구 참여 링크 접속(참여 마감 / 닉네임 중복), 참여 대기(방장 / 방장 권한 이어받기 / 참가자) |
+| FE2 | 09 ~ 18 | 퀘스트 투표, 투표 현황(방장), 투표 마감 확인, 투표 대기, 퀘스트 확정, 퀘스트 진행, 내 기록(닉네임 변경 / 변경 완료 / 빈 상태), 탐험 기록, 스토리 템플릿 선택, 기록 미리보기, 탐험 종료 |
+
+### 화면 번호 대조표
+
+기능명세서(Notion)는 디자인 이전 번호를 쓴다. 코드 주석, PR, 대화에서는 **디자인 번호**를 쓴다.
+
+| 디자인 번호 · 이름 | 기능명세서 번호 · 이름 | 담당 |
+| --- | --- | --- |
+| 00 앱 진입화면 | 00 스플래시 | FE1 |
+| 01 닉네임 설정 | 01 닉네임 설정 | FE1 |
+| 02 홈 · 진행 중인 탐험 있음 | 02-1 홈 · 탐험 진행 중 | FE1 |
+| 02-1 홈 · 진행 중인 탐험 없음 | 02-3 홈 · 탐험 없음 | FE1 |
+| 02-2 홈 · 투표 대기 중 | 02-2 홈 · 투표 진행 중 | FE1 |
+| (번호 없음) 하단 내비게이션 | 공통 · 하단 내비게이션 | FE1 |
+| 03 조건 선택 | 03 오늘의 탐험 설정 | FE1 |
+| 04 지역 선택 | 03-1 탐험 지역 선택 | FE1 |
+| 05 초대장 | 04 탐험방 생성 완료 | FE1 |
+| 06 친구 참여 링크 접속 | 05 초대 링크 참여 | FE1 |
+| 06-1 참여 마감 | 05-1 참여 마감 | FE1 |
+| 06-2 닉네임 중복 | 05-2 닉네임 중복 오류 | FE1 |
+| 07 참여 대기(방장) | 06-1 참여 대기 · 방장 | FE1 |
+| 07-1 방장 권한 이어받기 | 06-3 방장 미접속 / 방장 권한 이어받기 | FE1 |
+| 08 참여 대기(참가자) | 06-2 참여 대기 · 참가자 | FE1 |
+| 09 퀘스트 투표 | 07 퀘스트 투표 | FE2 |
+| 09-1 투표 현황(방장) | 08 투표 현황 · 방장 | FE2 |
+| 09-2 투표 마감 확인 | 08-1 투표 마감 확인 | FE2 |
+| 10 투표 대기 | 09 투표 대기 | FE2 |
+| 10-1 퀘스트 확정 | 10 퀘스트 확정 | FE2 |
+| 10-2 퀘스트 진행 | 11 탐험 진행 중 | FE2 |
+| 11 내기록1 | 13 내 기록 | FE2 |
+| 12 내기록2 (닉네임 변경 시트) | 13-2 닉네임 변경 | FE2 |
+| 13 내기록3 · 변경 완료 | 13-3 닉네임 변경 완료 | FE2 |
+| 14 내기록4 · 진행한 탐험이 없을 때 | 13-1 내 기록 · 빈 상태 | FE2 |
+| 15 탐험 기록 | 14 탐험 기록 상세 | FE2 |
+| 16 스토리템플릿선택 | 15 기록 남기기 | FE2 |
+| 17 기록 미리보기 | 16 기록 미리보기 | FE2 |
+| 18 탐험 종료 | 12 탐험 종료 | FE2 |
 
 ### 화면 간 연결 지점
 
-FE1 화면과 FE2 화면이 만나는 지점은 아래 네 곳뿐이다. 이동 경로는 이 표를 기준으로 한다.
+FE1 화면과 FE2 화면이 만나는 지점은 아래 표가 전부다. 이동 경로는 이 표를 기준으로 한다.
 
 | 출발 (담당) | 도착 (담당) | 이동 방식 |
 | --- | --- | --- |
-| 06 참여 대기 (FE1) | 07 퀘스트 투표 (FE2) | `` router.replace(`/rooms/${roomId}/vote`) `` |
-| 02 홈 · 투표 진행 중 (FE1) | 08 / 09 투표 현황·대기 (FE2) | `` router.push(`/rooms/${roomId}/vote-status`) `` |
-| 02 홈 · 탐험 진행 중 (FE1) | 11 탐험 진행 중 (FE2) | `` router.push(`/rooms/${roomId}/progress`) `` |
-| 02 홈 · 최근 탐험 (FE1) | 14 탐험 기록 상세 (FE2) | `` router.push(`/records/${recordId}`) `` |
+| 07 참여 대기(방장) · 퀘스트 선택 시작 (FE1) | 09 퀘스트 투표 (FE2) | `` router.replace(`/rooms/${roomId}/vote`) `` |
+| 08 참여 대기(참가자) · `VOTING` 감지 (FE1) | 09 퀘스트 투표 (FE2) | `` router.replace(`/rooms/${roomId}/vote`) `` |
+| 02-2 홈 · 투표 대기 중 · 투표 현황 보기 (FE1) | 09-1 투표 현황 / 10 투표 대기 (FE2) | `` router.push(`/rooms/${roomId}/vote-status`) `` |
+| 02 홈 · 진행 중인 탐험 있음 · 이어하기 (FE1) | 10-2 퀘스트 진행 (FE2) | `` router.push(`/rooms/${roomId}/progress`) `` |
+| 02 / 02-2 홈 · 최근 탐험 카드 (FE1) | 15 탐험 기록 (FE2) | `` router.push(`/records/${recordId}`) `` |
+| 14 내기록4 · 탐험 시작 (FE2) | 03 조건 선택 (FE1) | `router.push("/condition")` |
+| 09-1 / 10-1 등 FE2 화면의 뒤로가기 (FE2) | 02 홈 (FE1) | `router.replace("/home")` |
 
 - 연결 지점의 경로가 바뀌면 바꾸는 쪽이 상대에게 먼저 알린다.
-- 13 내 기록 → 03 탐험 설정(빈 상태의 탐험 시작 버튼)은 FE2가 FE1 경로로 이동한다.
+- 02 홈의 이어하기는 방 상태에 따라 도착 화면이 달라진다. 4.3 표를 따른다.
 
 ---
 
@@ -60,6 +100,7 @@ FE1 화면과 FE2 화면이 만나는 지점은 아래 네 곳뿐이다. 이동 
 
 - FE2가 먼저 만들어 `FE` 브랜치에 머지하고 공유한다.
 - FE1은 머지 후 기존 `homeApi.ts`, `nicknameApi.ts`를 아래 구조로 옮긴다.
+- (2026-11-03 FE1 통합) FE1 API는 `client.ts` / `mock.ts`로 실서버 전환되도록 연결했다. 단, FE1 화면이 쓰는 `{ success, data }` 반환 형태는 유지한다 (`apiError.ts`의 `toResponse`). `nicknameApi.ts` → `userApi.ts` 정리는 남아 있다.
 
 ### 3.2 파일 구조
 
@@ -116,44 +157,44 @@ src/api/
 
 - Expo Router 파일 기반 라우팅을 사용한다. 경로는 `src/app/`에만 둔다.
 - 라우트 파일은 화면 컴포넌트를 불러오기만 하고, 실제 화면은 `src/screens/`에 둔다. (현재 코드 패턴 유지)
-- 하단 탭(홈 · 탐험 · 내 기록)은 `(tabs)` 그룹으로 묶는다.
-- 탐험방 흐름은 `rooms/[roomId]/`, 기록 흐름은 `records/[recordId]/` 아래에 둔다.
+- 하단 탭(홈 · 탐험 · 내 기록)은 `(tabs)` 그룹으로 묶는다. (FE1이 하단 탭을 구현할 때 `home.tsx`를 옮겨도 주소 `/home`은 유지한다)
+- FE1 화면(00 ~ 08)은 FE1 구현 경로를 따른다. FE2 탐험방 흐름은 `rooms/[roomId]/`, 기록 흐름은 `records/[recordId]/` 아래에 둔다.
 - 화면 이동 시 `room_id`, `record_id` 외의 데이터는 파라미터로 넘기지 않고 화면에서 API로 다시 조회한다.
 
 ### 4.2 경로 목록
 
 ```text
 src/app/
-  _layout.tsx               // 루트 Stack                       공통
-  index.tsx                 // 00 스플래시                      FE1
-  nickname.tsx              // 01 닉네임 설정                   FE1
+  _layout.tsx               // 루트 Stack                                         공통
+  index.tsx                 // 00 앱 진입화면                                     FE1
+  nickname.tsx              // 01 닉네임 설정                                     FE1
+  home.tsx                  // 02 / 02-1 / 02-2 홈                                FE1
+  condition.tsx             // 03 조건 선택 (04 지역 선택은 바텀시트)             FE1
+  room-created.tsx          // 05 초대장                                          FE1
+  join/
+    [token].tsx             // 06 친구 참여 링크 접속 (06-2 닉네임 중복 포함)     FE1
+  join-closed.tsx           // 06-1 참여 마감                                     FE1
+  waiting/
+    [roomId].tsx            // 07 참여 대기(방장) / 07-1 / 08 참여 대기(참가자)   FE1
   (tabs)/
-    _layout.tsx             // 하단 내비게이션                  FE1
-    home.tsx                // 02 홈                            FE1
-    explore/
-      index.tsx             // 03 오늘의 탐험 설정              FE1
-      region.tsx            // 03-1 탐험 지역 선택              FE1
+    _layout.tsx             // 하단 내비게이션 (미구현)                           FE1
     records/
-      index.tsx             // 13 내 기록                       FE2
-  invite/
-    [token].tsx             // 05 초대 링크 참여                FE1
+      index.tsx             // 11 내 기록 (12 / 13 / 14 포함)                     FE2
   rooms/
     [roomId]/
-      created.tsx           // 04 탐험방 생성 완료              FE1
-      waiting.tsx           // 06 참여 대기                     FE1
-      vote.tsx              // 07 퀘스트 투표                   FE2
-      vote-status.tsx       // 08 투표 현황 / 09 투표 대기      FE2
-      confirm.tsx           // 10 퀘스트 확정                   FE2
-      progress.tsx          // 11 탐험 진행 중                  FE2
-      finish.tsx            // 12 탐험 종료                     FE2
+      vote.tsx              // 09 퀘스트 투표                                     FE2
+      vote-status.tsx       // 09-1 투표 현황(방장) / 10 투표 대기                FE2
+      confirm.tsx           // 10-1 퀘스트 확정                                   FE2
+      progress.tsx          // 10-2 퀘스트 진행                                   FE2
+      finish.tsx            // 18 탐험 종료                                       FE2
   records/
     [recordId]/
-      index.tsx             // 14 탐험 기록 상세                FE2
-      story.tsx             // 15 기록 남기기                   FE2
-      preview.tsx           // 16 기록 미리보기                 FE2
+      index.tsx             // 15 탐험 기록                                       FE2
+      story.tsx             // 16 스토리 템플릿 선택                              FE2
+      preview.tsx           // 17 기록 미리보기                                   FE2
 ```
 
-- 바텀시트·확인창·토스트(05-1, 05-2, 06-3, 08-1, 13-2, 13-3)는 별도 경로를 만들지 않고 해당 화면 안의 컴포넌트로 구현한다.
+- 바텀시트·확인창·토스트(04 지역 선택, 06-2 닉네임 중복, 07-1 방장 권한 이어받기, 09-2 투표 마감 확인, 12 닉네임 변경, 13 변경 완료)는 별도 경로를 만들지 않고 해당 화면 안의 컴포넌트로 구현한다. 06-1 참여 마감은 FE1 구현대로 별도 경로(`/join-closed`)를 쓴다.
 - 경로 추가 / 변경은 담당 폴더 안에서는 자유롭게 하고, 4.2 목록과 2장의 연결 지점 표를 함께 수정한다.
 
 ### 4.3 방 상태별 화면 분기
@@ -162,7 +203,7 @@ src/app/
 
 | `room_status` | 이동할 화면 |
 | --- | --- |
-| `WAITING` | `rooms/[roomId]/waiting` |
+| `WAITING` | `waiting/[roomId]` |
 | `VOTING` | `rooms/[roomId]/vote` (미투표) 또는 `vote-status` (투표 완료) |
 | `VOTE_CLOSED` | `rooms/[roomId]/confirm` |
 | `QUEST_CONFIRMED` | `rooms/[roomId]/confirm` |
@@ -185,22 +226,25 @@ src/app/
 
 ### 5.2 위치와 예상 목록
 
+FE1과 FE2가 각각 만든 같은 역할의 컴포넌트는 **FE1 것으로 통일**했다 (2026-11-03).
+
 ```text
+src/components/
+  ScreenHeader.tsx    // FE1 — LogoHeader(로고 + 타이틀, subtitle 선택), NavHeader(중앙 타이틀 Bold 17 + 뒤로가기)
+  ProfileAvatar.tsx   // FE1 — 닉네임 첫 1자, (첫 글자 유니코드 % 6) 프로필 팔레트
+  Toast.tsx           // FE1 — 배경 #1F1F22, 2초 노출 (useToast)
 src/components/common/
   PrimaryButton.tsx   // 기본 CTA 353 x 52, radius 14, 비활성 #F2F2F2 / 글자 #A5A5A5
-  NavHeader.tsx       // 중앙 타이틀 Bold 17 + 뒤로가기
-  Avatar.tsx          // 닉네임 첫 1자, (첫 글자 유니코드 % 6) 프로필 팔레트
-  Toast.tsx           // 배경 #1F1F22, 2초 노출
   ConfirmDialog.tsx   // 확인창 (투표 마감 확인 등)
   BottomSheet.tsx     // 바텀시트 (닉네임 변경 등)
   CheckCircle.tsx     // 26px, 미선택 테두리 1.5px #D4D4D4
   Chip.tsx            // 선택 pill, radius 999
 src/constants/
-  colors.ts           // 개발 가이드 1장 컬러 토큰 + 2장 프로필 팔레트
+  colors.ts           // 개발 가이드 1장 컬러 토큰 + 2장 프로필 팔레트 (토큰 이름은 FE1 기준)
   typography.ts       // 개발 가이드 3장 타이포그래피
   layout.ts           // 개발 가이드 4장 레이아웃 그리드, 5장 그림자
 src/hooks/
-  usePolling.ts       // 5초 폴링 (06 참여 대기, 08 / 09 투표 현황)
+  usePolling.ts       // 5초 폴링 (07 / 08 참여 대기, 09-1 투표 현황 / 10 투표 대기)
 src/utils/
   responsive.ts       // 기존 유지
   date.ts             // 날짜 표시 포맷
@@ -220,9 +264,9 @@ src/utils/
 main
  └─ FE                         // FE 통합 브랜치
      ├─ feat/fe2-api-client
-     ├─ feat/fe2-vote          // 07, 09
-     ├─ feat/fe2-records       // 13, 14
-     ├─ feat/fe1-region        // 03-1
+     ├─ feat/fe2-vote          // 09, 10
+     ├─ feat/fe2-records       // 11, 15
+     ├─ feat/fe1-region        // 04
      └─ ...
 ```
 
@@ -268,6 +312,9 @@ chore: API 클라이언트 환경 변수 추가
 
 | 항목 | 내용 | 협의 대상 |
 | --- | --- | --- |
+| 지역 썸네일 | `region.image_url` 추가 요청 (FE1 요청서). FE는 `thumbnail_url` / `region_image_url` 타입·화면 준비 완료, 더미는 `null` | FE1, BE |
+| 지역 / 대기 응답 필드 | BE `GET /regions`에 `region_level` 없음(04 시·도 구분 불가), `waiting-status`에 `invite_url` 없음(07 초대 링크) | FE1, BE |
+| 기능명세서 화면 번호 | Notion 기능명세서와 `reference/기능명세서.md`가 디자인 이전 번호를 씀 (2장 대조표). 원본을 디자인 번호로 바꿀지 결정 | FE1, FE2, 기획 |
 | 방 상태값 불일치 | 개발 가이드 10장과 API명세서 / BE 구현의 `room_status` 값이 다름. 개발 가이드 수정 필요 | FE1, FE2, BE, 기획 |
 | 홈 응답 필드 | FE 홈 화면은 `voted_participant_count`를 사용하나 API명세서 `GET /home` 응답에는 없음. `retention` 필드는 FE에 미반영 | FE1, BE |
 | 개발 서버 주소 | 실기기 테스트 시 BE 접속 주소(로컬 IP / 배포 서버) 결정 | FE1, FE2, BE |

@@ -4,11 +4,15 @@ import {
   View,
   Text,
   Image,
-  SafeAreaView,
   StatusBar,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { COLORS } from "../constants/colors";
 
+/**
+ * 00. 앱 진입화면
+ * 앱 첫 실행 시, 그리고 화면 첫 데이터 로딩 중에 표시
+ */
 export default function SplashScreen() {
   return (
     <SafeAreaView style={styles.container}>

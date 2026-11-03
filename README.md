@@ -41,6 +41,17 @@ npx expo start          # 웹만 실행: npx expo start --web (포트 8081)
 - 07 퀘스트 투표: `http://localhost:8081/rooms/1/vote`
 - 08 투표 현황(방장): `http://localhost:8081/rooms/1/vote-status`
 - 09 투표 대기(참가자): `http://localhost:8081/rooms/2/vote-status`
+- 10 퀘스트 확정 (방 번호 100 이상은 투표 마감 상태에서 시작)
+
+  | 주소 | 상황 |
+  | --- | --- |
+  | `/rooms/101/confirm` | 방장 · 동점 없음 → 자동 확정 |
+  | `/rooms/103/confirm` | 방장 · 동점 있음 → 동점 후보 선택 |
+  | `/rooms/102/confirm` | 참가자 · 방장 확정 대기 |
+  | `/rooms/104/confirm` | 참가자 · 확정 완료, 탐험 시작 대기 |
+
+- 08에서 마감하면 10 → 탐험 시작하기 → 11까지 이어서 확인할 수 있습니다. (더미 방 상태는 새로고침하면 초기화)
+- 방 번호 규칙은 `src/api/mockRooms.ts`에 있습니다.
 
 ### 실제 BE 모드
 
@@ -141,7 +152,7 @@ try { ... } catch (e) {
 | `/records/:recordId/story` | 15 기록 남기기 | FE2 |
 | `/records/:recordId/preview` | 16 기록 미리보기 | FE2 |
 
-- 구현 완료: 07 퀘스트 투표, 08 투표 현황(방장), 08-1 투표 마감 확인, 09 투표 대기. 나머지 FE2 화면은 임시 화면(`ScreenPlaceholder`)입니다.
+- 구현 완료: 07 퀘스트 투표, 08 투표 현황(방장), 08-1 투표 마감 확인, 09 투표 대기, 10 퀘스트 확정. 나머지 FE2 화면은 임시 화면(`ScreenPlaceholder`)입니다.
 - FE1 → FE2 연결: 06 참여 대기에서 `` router.replace(`/rooms/${roomId}/vote`) ``
 
 ### 07 ~ 09 투표 화면 동작
@@ -155,11 +166,23 @@ try { ... } catch (e) {
 - BE 미구현으로 **더미**인 API: 투표 현황(`VOTE_STATUS_API_PENDING`), 마감 확인·마감(`VOTE_CLOSE_API_PENDING`). 구현되면 `voteApi.ts`의 해당 값을 `false`로 바꿉니다.
 - 방 상태 / 방장 여부는 임시로 `voteApi.ts`의 `fetchRoomState()`(`waiting-status` 사용)로 조회합니다. FE1의 `roomApi.ts`가 생기면 교체합니다.
 
+### 10 퀘스트 확정 동작
+
+- 방장: 화면 진입 시 `GET /final-quests/preview` → 동점 없으면 `POST /final-quests` 자동 호출 → 확정된 퀘스트 3개 표시
+- 방장 · 동점: 동점 그룹마다 `required_select_count`개 선택 → `POST /final-quests/tie-break` → `POST /final-quests`
+- 방장: 탐험 시작하기 → `POST /exploration/start` → 11 탐험 진행 중
+- 참가자: 방장이 확정할 때까지 대기 → 확정된 퀘스트 표시 → 방장이 탐험을 시작하면(`IN_PROGRESS`) 11로 자동 이동
+- 화면 진입 시 1회 + 5초 간격으로 방 상태를 확인합니다.
+- 동점 후보 선택 화면은 디자인 시안이 없어 07 퀘스트 투표 목록과 같은 모양으로 만들었습니다.
+- 탐험 요약 카드의 날짜는 API에 날짜 필드가 없어 기기의 오늘 날짜로 표시합니다.
+
 ### 결정 사항
 
 | 항목 | 결정 | 근거 |
 | --- | --- | --- |
 | 최종 퀘스트 동점 처리 | **재투표 없이 방장이 동점 후보 중 직접 선택** (`POST /final-quests/tie-break`) | API명세서가 최신 기준. 기능명세서의 "먼저 투표된 퀘스트 → 후보 표시 순서로 자동 선정"은 적용하지 않음 |
+| 동점 없을 때 확정 시점 | 방장이 10 화면에 들어오면 자동 확정 | 디자인처럼 확정 결과가 바로 보이도록 |
+| 탐험 시작 권한 | 방장만 시작, 참가자는 자동 이동 | 06 투표 시작, 08 투표 마감과 같은 방식 |
 
 ## 공통 컴포넌트 · 훅
 
@@ -171,6 +194,7 @@ try { ... } catch (e) {
 | `components/common/CheckCircle.tsx` | 체크 원 (26px, 미선택 테두리 1.5px) |
 | `components/common/Avatar.tsx` | 닉네임 첫 글자 아바타. 배경색 = 첫 글자 유니코드 % 6 → `PROFILE_PALETTE` |
 | `components/common/ConfirmDialog.tsx` | 확인창 (딤 + 모달, 취소 / 확인). `children`으로 추가 정보 표시 |
+| `utils/date.ts` | 날짜 표시 포맷 (`formatDotDate`: 2026. 09. 14) |
 | `hooks/usePolling.ts` | 5초 폴링. 백그라운드에서 중단, 복귀 시 재개, 이전 요청 완료 전 중복 요청 없음 |
 | `constants/colors.ts` | 개발 가이드 컬러 토큰 + `PROFILE_PALETTE` (6색) |
 
@@ -190,8 +214,12 @@ try { ... } catch (e) {
 
 08 / 09 화면으로 확인: 실제 `is_host` 값으로 방장(08) / 초대 참여자(09) 화면 분기 정상.
 
-- BE 미구현으로 FE에서 더미 처리 중: `GET /votes/status`, `GET /votes/close-preview`, `POST /votes/close`
+- BE 미구현으로 FE에서 더미 처리 중: `GET /votes/status`, `GET /votes/close-preview`, `POST /votes/close`, `GET /rooms/{id}`, `GET /final-quests/preview`, `POST /final-quests/tie-break`, `POST /final-quests`, `POST /exploration/start`
 - 투표 마감 API가 없어 실제 마감 후 참가자 09 → 10 자동 이동은 미확인
+- API명세서 보완 요청
+  - 확정된 퀘스트 조회 API 없음 → 참가자·재진입한 방장이 확정 결과를 볼 수 없음 (FE는 `fetchFinalQuests()` 더미로 대기, 예: `GET /final-quests`)
+  - 동점일 때 `preview`에 이미 확정된 순위가 없음 → "1·2위 확정 + 3위 선택"을 화면에 보여줄 수 없음
+  - `GET /rooms/{id}`에 날짜 필드(`created_at` 등) 없음 → 탐험 요약 카드 날짜를 기기 날짜로 표시 중
 
 - CORS: FE 웹 개발 서버는 `http://localhost:8081` (BE 기본 허용 목록에 포함)
 - 확인 요청 사항

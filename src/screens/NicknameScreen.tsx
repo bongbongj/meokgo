@@ -8,25 +8,32 @@ import {
   Image,
   TextInput,
   TouchableOpacity,
-  SafeAreaView,
   Platform,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { COLORS } from "../constants/colors";
 import { setNickname } from "../api/nicknameApi";
 import { scale, verticalScale, moderateScale } from "../utils/responsive";
 import { router } from "expo-router";
+import {
+  filterNickname,
+  isValidNickname,
+  NICKNAME_MAX_LENGTH,
+} from "../utils/nickname";
+import { saveStoredNickname } from "../utils/userStorage";
 
 export default function NicknameScreen() {
   const [nickname, setNicknameInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const currentLength = nickname.trim().length;
-  const isButtonActive = currentLength >= 1 && currentLength <= 10;
-  const counterColor = currentLength === 10 ? COLORS.primary : COLORS.textMuted;
+  const isButtonActive = isValidNickname(nickname);
+  const counterColor =
+    currentLength === NICKNAME_MAX_LENGTH ? COLORS.primary : COLORS.textMuted;
 
   const handleTextChange = (text: string) => {
-    const filteredText = text.replace(/[^가-힣ㄱ-ㅎㅏ-ㅣa-zA-Z0-9]/g, "");
-    if (filteredText.length <= 10) {
+    const filteredText = filterNickname(text);
+    if (filteredText !== null) {
       setNicknameInput(filteredText);
     }
   };
@@ -40,6 +47,8 @@ export default function NicknameScreen() {
     try {
       const response = await setNickname({ nickname: finalNickname });
       if (response.success) {
+        // 기기 기본 닉네임 저장 → 다음 실행부터는 스플래시 후 바로 홈
+        await saveStoredNickname(finalNickname);
         router.replace("/home");
       }
     } catch (error) {
@@ -130,15 +139,13 @@ const styles = StyleSheet.create({
   },
   inner: {
     flex: 1,
-    justifyContent: "space-between",
+    justifyContent: "center", // 로고~안내문을 한 덩어리로 화면 중앙 배치
     alignItems: "center",
     paddingHorizontal: scale(20), // 좌우 여백 20px 비율 반영
-    paddingTop: verticalScale(60), // 상단 여백 비율 반영
-    paddingBottom: verticalScale(40), // 하단 여백 비율 반영
   },
   logoContainer: {
     alignItems: "center",
-    marginTop: verticalScale(20),
+    marginBottom: verticalScale(24), // 워드마크 ~ 입력창 간격
   },
   logoImage: {
     width: scale(150), // 심볼 150px 비율 반영

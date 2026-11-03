@@ -320,4 +320,4 @@ chore: API 클라이언트 환경 변수 추가
 | 홈 응답 필드 | FE 홈 화면은 `voted_participant_count`를 사용하나 API명세서 `GET /home` 응답에는 없음. `retention` 필드는 FE에 미반영 | FE1, BE |
 | 개발 서버 주소 | 실기기 테스트 시 BE 접속 주소(로컬 IP / 배포 서버) 결정 | FE1, FE2, BE |
 | 폰트 적용 | Noto Sans KR / Inter 로딩 방식과 담당 | FE1, FE2 |
-| Story 네이티브 모듈 | 앨범 접근, 이미지 생성, 저장·공유에 필요한 모듈과 개발 빌드 여부 | FE2 |
+| Story 네이티브 모듈 | (2026-11-03 FE2 정리) `expo-image-picker`, `expo-media-library`, `expo-sharing`, `react-native-view-shot` 추가 — 모두 Expo Go 포함, 개발 빌드 불필요. 서버 Story 이미지 API 사용 여부는 README 컨펌 필요 사항 | FE2, BE |

@@ -66,6 +66,7 @@ const MOCK_PHOTOS: Record<string, ImageSourcePropType> = {
   "mock://seongsu": require("../../assets/images/mock/seongsu.png"),
   "mock://haenggung": require("../../assets/images/mock/haenggung.jpg"),
   "mock://mullae": require("../../assets/images/mock/mullae.jpg"),
+  "mock://euljiro-alley": require("../../assets/images/mock/euljiro-alley.jpg"),
   "mock://euljiro-night": require("../../assets/images/mock/euljiro-night.jpg"),
   "mock://euljiro-golbaengi": require("../../assets/images/mock/euljiro-golbaengi.jpg"),
   "mock://euljiro-street": require("../../assets/images/mock/euljiro-street.jpg"),
@@ -120,12 +121,14 @@ const MOCK_RECORDS: (RecordSummary & { photos: string[] })[] = [
   },
 ];
 
-// 15 디자인 시안 — 10-2에서 종료한 탐험의 기록으로 사용
+// 15 / 16 디자인 시안 — 10-2에서 종료한 탐험의 기록으로 사용 (앞 4장이 16의 지역 / 음식 / 함께한 / 추가 사진)
 const MOCK_EULJIRO_PHOTOS = [
-  "mock://euljiro-night",
-  "mock://euljiro-golbaengi",
-  "mock://euljiro-street",
+  "mock://euljiro-alley",
   "mock://euljiro-food",
+  "mock://friends",
+  "mock://beer",
+  "mock://euljiro-golbaengi",
+  "mock://euljiro-night",
 ];
 
 let mockEmpty = false;

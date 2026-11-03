@@ -79,6 +79,8 @@ npx expo start          # 웹만 실행: npx expo start --web (포트 8081)
   | `/records` → 연필 아이콘 | 12 닉네임 변경 → 저장 시 13 변경 완료 토스트 |
   | `/records/4` | 15 탐험 기록 (망원동) |
   | `/records/1101` | 15 탐험 기록 · 디자인 시안(을지로). 10-2 → 18에서 종료한 방의 기록 번호는 `1000 + 방 번호` |
+  | `/records/1101/story` | 16 스토리 템플릿 선택 (기록 사진 4장으로 채워진 상태) |
+  | `/records/1101/preview` | 17 기록 미리보기 (16을 거치지 않으면 01 MOOD + 기록 사진 앞 4장) |
 
 - 11의 닉네임은 01 닉네임 설정에서 기기에 저장한 값입니다. 주소로 바로 열어 저장된 값이 없으면 비어 보입니다. (웹: 콘솔에서 `localStorage.setItem('user.nickname', '민교')`)
 - 10-2에서 탐험을 종료하면 11 기록 목록 맨 앞에 을지로 기록이 추가됩니다. (새로고침하면 초기화)
@@ -153,6 +155,7 @@ BE에 **투표 중인 방**이 있고, 그 방에 **지금 브라우저의 기�
 | `voteApi.ts` | FE2 — 후보 조회(미생성 시 생성 후 재조회), 투표 저장 / 수정(POST / PUT), 투표 현황, 방 상태 |
 | `explorationApi.ts` | FE2 — 탐험 시작, 진행 조회, 퀘스트 완료 / 취소, 탐험 종료 (BE 미구현 → `EXPLORATION_API_PENDING`) |
 | `recordApi.ts` | FE2 — 사용자 통계, 기록 목록 / 상세 (BE 미구현 → `RECORD_API_PENDING`). 더미 사진(`mock://…`)은 `getPhotoSource()`로 `assets/images/mock/` 이미지로 바꿈 |
+| `storyApi.ts` | FE2 — Story 템플릿, 기록 사진 업로드(multipart, 1 ~ 4장) (BE 미구현 → `STORY_API_PENDING`) |
 | `userApi.ts` | 닉네임 변경 (`PATCH /users/me/nickname`, FE2). bootstrap / 닉네임 최초 설정은 FE1이 `nicknameApi.ts`에서 옮길 예정 |
 | `mockRooms.ts` | 더미 전용 — 화면 사이 방 상태 / 방장 여부 공유 (FE1 더미 방도 여기에 기록) |
 
@@ -202,7 +205,7 @@ try { ... } catch (e) {
 | `/records/:recordId/preview` | 17 기록 미리보기 | FE2 |
 
 - FE1 화면(00 ~ 08)은 `FE1` 브랜치(`2605774`)를 통합한 것입니다. `FE1` 브랜치 자체는 원본으로 남겨 둡니다.
-- 구현 완료: 00 ~ 08 전체(FE1), 09 퀘스트 투표, 09-1 투표 현황(방장), 09-2 투표 마감 확인, 10 투표 대기, 10-1 퀘스트 확정, 10-2 퀘스트 진행, 11 ~ 14 내 기록, 15 탐험 기록, 18 탐험 종료. 나머지 FE2 화면은 임시 화면(`ScreenPlaceholder`)입니다.
+- 구현 완료: 00 ~ 08 전체(FE1), 09 퀘스트 투표, 09-1 투표 현황(방장), 09-2 투표 마감 확인, 10 투표 대기, 10-1 퀘스트 확정, 10-2 퀘스트 진행, 11 ~ 14 내 기록, 15 탐험 기록, 16 스토리 템플릿 선택, 17 기록 미리보기, 18 탐험 종료. FE2 화면은 모두 구현했습니다.
 - FE1 → FE2 연결 (협업 규칙 2장 연결 지점 표)
   - 07 퀘스트 선택 시작 / 08에서 `VOTING` 감지 → `` router.replace(`/rooms/${roomId}/vote`) ``
   - 02 홈 이어하기 / 투표 현황 보기 → 방 상태별 이동 (`WAITING` → 대기, `VOTING` → `vote-status`, `VOTE_CLOSED` · `QUEST_CONFIRMED` → `confirm`, `IN_PROGRESS` → `progress`)
@@ -246,6 +249,17 @@ try { ... } catch (e) {
 - 13: 저장 성공(`PATCH /users/me/nickname`) 시 기기 저장 닉네임도 바꾸고, 프로필 글자·색을 다시 계산한 뒤 체크 아이콘 토스트 2초. 실패 시 같은 자리에 오류 토스트.
 - 15: `GET /records/{id}`. 첫 번째 사진은 대표 사진, 나머지는 그날의 사진(가로 스크롤). 사진을 누르면 원본 크게 보기(화면 탭으로 닫기). 기록 남기기 → `/records/{id}/story`. 하단 탭의 내 기록을 누르면 11로 돌아갑니다.
 
+### 16 ~ 17 기록 남기기 동작
+
+- 16: `GET /story-templates`와 기록 상세로 시작. 사진 4칸(지역 / 음식 / 함께한 / 추가)은 기록 사진으로 채워 두고, 칸을 누르면 갤러리(`expo-image-picker`)에서 교체, X로 비우기. JPG / PNG, 장당 10MB 이하만 받습니다.
+- 16: 템플릿 썸네일은 고른 사진으로 바로 다시 그립니다. 0장이면 미리보기 비활성.
+- 16 → 17: 새로 고른 사진만 `POST /records/{id}/photos`로 올리고, 템플릿 · 사진 선택은 `utils/storyDraft.ts`(메모리)에 기록별로 둡니다 (주소에는 `record_id`만, 협업 규칙 4.1).
+- 17: `components/story/StoryCard.tsx`로 9:16 이미지를 그리고(빈 칸 제외, 지역명 · 날짜 · 완료 퀘스트 수 자동 삽입), `react-native-view-shot`으로 1080 x 1920 PNG를 캡처합니다.
+  - 앱: `expo-media-library`로 사진 보관함에 저장(쓰기 권한만 요청), 공유하기 → `expo-sharing` 공유 시트
+  - 웹: PNG 파일 다운로드, 공유하기는 숨김 (`expo-media-library` 웹 미지원, `expo-sharing`은 웹에서 로컬 파일 공유 불가) — `utils/saveStoryImage.ts` / `.web.ts`로 나눔
+- 4개 패키지 모두 Expo Go에 포함되어 있어 개발 빌드 없이 확인할 수 있습니다. 권한 문구는 `app.json` 플러그인 설정에 있습니다.
+- 앱(Expo Go) 실기기에서의 갤러리 선택 · 저장 · 공유는 아직 확인하지 않았습니다. 웹에서는 템플릿 전환, 사진 비우기, 미리보기 이동, PNG 생성(1080 x 1920)까지 확인했습니다.
+
 ### 결정 사항
 
 | 항목 | 결정 | 근거 |
@@ -268,6 +282,12 @@ try { ... } catch (e) {
 | 기록 남기기 버튼 위치 (15) | 화면정의에는 "기록 남기기 → 16"이 있으나 디자인 시안에 버튼이 없어 완료한 퀘스트 아래에 둠 | 디자인 |
 | 대표 사진 (15) | 명세에 대표 사진 필드가 없어 `photos`의 첫 번째 사진을 대표 사진으로 사용. 사진이 없으면 회색 영역 | 디자인, BE |
 | 내 기록 닉네임 (11) | 사용자 정보 조회 API가 `bootstrap`뿐이라 기기에 저장된 닉네임을 표시 | BE |
+| 기록 이미지 생성 위치 (17) | 앱에서 템플릿을 그려 캡처해 저장 / 공유. 서버 `POST / GET /records/{id}/story-image`는 사용하지 않음 (보관 30일 정책도 미적용) | 기획, BE |
+| 템플릿 ↔ 레이아웃 (16 / 17) | 템플릿 API에 레이아웃 구분 값이 없어 `template_id` 1 → MOOD, 2 → 콜라주로 고정 (`StoryCard.getStoryLayout`) | BE |
+| 공유 버튼 (17) | 화면정의에는 저장 / 공유 버튼이 있으나 디자인 시안에는 이미지 저장만 있어, 저장 아래에 공유하기 글자 버튼을 둠 (앱에서만) | 디자인 |
+| 사진 1080px 리사이즈 (16) | 앱에서는 리사이즈하지 않고 원본(품질 0.9)을 올림. 서버에서 리사이즈하는지 확인 필요 | BE |
+| 사진 칸 비우기 (16) | 디자인에 없어 사진 오른쪽 위 X 버튼으로 비우기를 추가 (빈 칸은 템플릿에서 제외 규칙용) | 디자인 |
+| 기록 이미지 문구 (17) | 디자인은 지역명만 있으나, 화면정의의 "날짜 / 완료 퀘스트 자동 삽입"에 따라 지역명 아래 날짜 · 퀘스트 수를 추가 | 디자인 |
 
 ## 공통 컴포넌트 · 훅
 
@@ -286,6 +306,9 @@ FE1과 겹치던 컴포넌트(헤더, 아바타)는 FE1 것으로 통일했습�
 | `components/common/PrimaryButton.tsx` | 기본 CTA (353 x 52, radius 14). `variant="filled" \| "outline"`, `disabled`, `loading` |
 | `components/common/CheckCircle.tsx` | 체크 원 (26px, 미선택 테두리 1.5px) |
 | `components/common/ConfirmDialog.tsx` | 확인창 (딤 + 모달, 취소 / 확인). `children`으로 추가 정보 표시 |
+| `components/story/StoryCard.tsx` | FE2 — 기록 이미지 템플릿 (01 MOOD / 02 콜라주). 16 썸네일과 17 미리보기 · 캡처에 같이 사용, 크기에 비례해 그림 |
+| `utils/storyDraft.ts` | FE2 — 16 → 17 템플릿 · 사진 선택 상태 (메모리) |
+| `utils/saveStoryImage.ts` | FE2 — 기록 이미지 캡처 후 저장 / 공유. 웹은 `.web.ts` (다운로드) |
 | `utils/date.ts` | 날짜 표시 포맷 (`formatDotDate`: 2026. 09. 14, `formatCompactDotDate`: 2026.09.14) |
 | `hooks/usePolling.ts` | 5초 폴링 (`export default`). 백그라운드에서 중단, 복귀 시 재개, 이전 요청 완료 전 중복 요청 없음 |
 | `constants/colors.ts` | FE1 토큰 이름 기준 (`chipBorder`, `emptyCircleBorder`, `tabActiveBg` …) + `trackBg`, `dim`, `PROFILE_PALETTE` (6색) |
@@ -307,7 +330,7 @@ FE1과 겹치던 컴포넌트(헤더, 아바타)는 FE1 것으로 통일했습�
 
 09-1 / 10 화면으로 확인: 실제 `is_host` 값으로 방장(09-1) / 초대 참여자(10) 화면 분기 정상.
 
-- BE 미구현으로 FE에서 더미 처리 중: `GET /home`, `GET /votes/status`, `GET /votes/close-preview`, `POST /votes/close`, `GET /rooms/{id}`, `POST /rooms/{id}/host/takeover`, `GET /final-quests/preview`, `POST /final-quests/tie-break`, `POST /final-quests`, `POST /exploration/start`, `GET /exploration/progress`, `PATCH /final-quests/{id}/progress`, `POST /exploration/finish`, `GET /users/me/statistics`, `GET /users/me/records`, `GET /records/{id}`
+- BE 미구현으로 FE에서 더미 처리 중: `GET /home`, `GET /votes/status`, `GET /votes/close-preview`, `POST /votes/close`, `GET /rooms/{id}`, `POST /rooms/{id}/host/takeover`, `GET /final-quests/preview`, `POST /final-quests/tie-break`, `POST /final-quests`, `POST /exploration/start`, `GET /exploration/progress`, `PATCH /final-quests/{id}/progress`, `POST /exploration/finish`, `GET /users/me/statistics`, `GET /users/me/records`, `GET /records/{id}`, `GET /story-templates`, `POST /records/{id}/photos`
   - BE 작업분이 push되면 각 API 파일의 `*_API_PENDING`을 `false`로 바꿉니다.
 - 지역 썸네일 (FE1 요청서: `region.image_url` 컬럼 추가) — FE 타입·화면은 준비 완료, 더미 값은 `null`(회색 기본 이미지)
   - `GET /home`: `recent_records[].thumbnail_url`, `popular_regions[].region_image_url`

@@ -14,6 +14,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -49,6 +50,13 @@ const SLOT_LABELS = ["지역 사진", "음식 사진", "함께한 사진", "추�
 /** 사진 칸 — 이미 서버에 있는 사진(photo_id) 또는 새로 고른 기기 사진(local) */
 type Slot = { photo_url: string; photo_id?: number; local?: LocalPhoto } | null;
 
+// 2열 칸 너비 — mobileWrapper(최대 393) 안에서 계산. scale()은 기기 전체 너비 기준이라
+// 393dp보다 넓은 폰에서 scale(169) 두 칸이 한 줄에 들어가지 않고 줄바꿈됨
+const MAX_CONTENT_WIDTH = 393;
+const THUMB_RATIO = 226 / 169; // 디자인 썸네일 169 x 226
+const GRID_PADDING = 20;
+const GRID_GAP = 13;
+
 const toTemplateLabel = (template: StoryTemplate, index: number) =>
   `${String(index + 1).padStart(2, "0")} ${template.template_name}`;
 
@@ -61,6 +69,10 @@ export default function StoryScreen({ recordId }: StoryScreenProps) {
   const [reloadKey, setReloadKey] = useState(0);
   const [uploading, setUploading] = useState(false);
   const { showToast, toast } = useToast();
+  const { width: windowWidth } = useWindowDimensions();
+  const cellWidth =
+    (Math.min(windowWidth, MAX_CONTENT_WIDTH) - GRID_PADDING * 2 - GRID_GAP) / 2;
+  const thumbHeight = cellWidth * THUMB_RATIO;
 
   useEffect(() => {
     let cancelled = false;
@@ -158,7 +170,7 @@ export default function StoryScreen({ recordId }: StoryScreenProps) {
                 return (
                   <TouchableOpacity
                     key={template.template_id}
-                    style={styles.cell}
+                    style={{ width: cellWidth }}
                     activeOpacity={0.85}
                     onPress={() => setTemplateId(template.template_id)}
                     accessibilityRole="radio"
@@ -173,11 +185,11 @@ export default function StoryScreen({ recordId }: StoryScreenProps) {
                           regionName={record.region_name}
                           dateText={formatDotDate(record.created_at)}
                           questCount={record.completed_quests.filter((q) => q.completed).length}
-                          width={scale(169)}
-                          height={verticalScale(226)}
+                          width={cellWidth}
+                          height={thumbHeight}
                         />
                       ) : (
-                        <View style={styles.thumbEmpty} />
+                        <View style={[styles.thumbEmpty, { width: cellWidth, height: thumbHeight }]} />
                       )}
                     </View>
                     <Text style={[styles.templateName, selected && styles.templateNameSelected]}>
@@ -191,7 +203,7 @@ export default function StoryScreen({ recordId }: StoryScreenProps) {
             <Text style={styles.sectionTitle}>사진 선택</Text>
             <View style={styles.grid}>
               {slots.map((slot, index) => (
-                <View key={SLOT_LABELS[index]} style={styles.cell}>
+                <View key={SLOT_LABELS[index]} style={{ width: cellWidth }}>
                   <TouchableOpacity
                     activeOpacity={0.85}
                     onPress={() => pickPhoto(index)}
@@ -286,12 +298,11 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    paddingHorizontal: scale(20),
-    columnGap: scale(13),
+    paddingHorizontal: GRID_PADDING,
+    columnGap: GRID_GAP,
     rowGap: verticalScale(10),
     marginBottom: verticalScale(22),
   },
-  cell: { width: scale(169) },
 
   thumb: {
     borderRadius: scale(12),
@@ -307,8 +318,6 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   thumbEmpty: {
-    width: scale(169),
-    height: verticalScale(226),
     borderRadius: scale(12),
     backgroundColor: COLORS.cardBg,
   },

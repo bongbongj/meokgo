@@ -27,6 +27,10 @@ export const setMockRoomStatus = (roomId: number, status: RoomStatus) => {
   statusByRoom.set(roomId, status);
 };
 
+/** 더미 흐름에서 종료(FINISHED)된 방 번호 — 11 내 기록 목록에 추가 */
+export const getFinishedMockRoomIds = (): number[] =>
+  [...statusByRoom].filter(([, status]) => status === "FINISHED").map(([roomId]) => roomId);
+
 // 03 ~ 08 화면(roomApi / inviteApi 더미)에서 만들거나 참여한 방은 실제 역할을 따른다
 const hostByRoom = new Map<number, boolean>();
 

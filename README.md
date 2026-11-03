@@ -71,6 +71,18 @@ npx expo start          # 웹만 실행: npx expo start --web (포트 8081)
   | `/rooms/102/progress` | 참가자 · 3개 모두 완료하고 약 8초 뒤 방장이 종료한 것으로 처리 → 다음 폴링에서 18 자동 이동 (10~20초) |
   | `/rooms/101/finish` | 18 탐험 종료 (10-2에서 종료한 뒤에만 기록 보러가기 활성) |
 
+- 11 ~ 15 내 기록 · 탐험 기록 (`src/api/recordApi.ts` 더미)
+
+  | 주소 | 상황 |
+  | --- | --- |
+  | `/records` | 11 내 기록 · 기록 4개 (망원 / 성수 / 행궁 / 문래). 상단 테스트 버튼으로 14 빈 상태 전환 (개발 모드 + 더미일 때만 표시) |
+  | `/records` → 연필 아이콘 | 12 닉네임 변경 → 저장 시 13 변경 완료 토스트 |
+  | `/records/4` | 15 탐험 기록 (망원동) |
+  | `/records/1101` | 15 탐험 기록 · 디자인 시안(을지로). 10-2 → 18에서 종료한 방의 기록 번호는 `1000 + 방 번호` |
+
+- 11의 닉네임은 01 닉네임 설정에서 기기에 저장한 값입니다. 주소로 바로 열어 저장된 값이 없으면 비어 보입니다. (웹: 콘솔에서 `localStorage.setItem('user.nickname', '민교')`)
+- 10-2에서 탐험을 종료하면 11 기록 목록 맨 앞에 을지로 기록이 추가됩니다. (새로고침하면 초기화)
+
 - 방 번호 규칙은 `src/api/mockRooms.ts`에 있습니다.
 
 ### 실제 BE 모드
@@ -140,6 +152,8 @@ BE에 **투표 중인 방**이 있고, 그 방에 **지금 브라우저의 기�
 | `inviteApi.ts` | FE1 — 초대 정보 조회, 초대 링크 참여 |
 | `voteApi.ts` | FE2 — 후보 조회(미생성 시 생성 후 재조회), 투표 저장 / 수정(POST / PUT), 투표 현황, 방 상태 |
 | `explorationApi.ts` | FE2 — 탐험 시작, 진행 조회, 퀘스트 완료 / 취소, 탐험 종료 (BE 미구현 → `EXPLORATION_API_PENDING`) |
+| `recordApi.ts` | FE2 — 사용자 통계, 기록 목록 / 상세 (BE 미구현 → `RECORD_API_PENDING`). 더미 사진(`mock://…`)은 `getPhotoSource()`로 `assets/images/mock/` 이미지로 바꿈 |
+| `userApi.ts` | 닉네임 변경 (`PATCH /users/me/nickname`, FE2). bootstrap / 닉네임 최초 설정은 FE1이 `nicknameApi.ts`에서 옮길 예정 |
 | `mockRooms.ts` | 더미 전용 — 화면 사이 방 상태 / 방장 여부 공유 (FE1 더미 방도 여기에 기록) |
 
 ```ts
@@ -188,12 +202,12 @@ try { ... } catch (e) {
 | `/records/:recordId/preview` | 17 기록 미리보기 | FE2 |
 
 - FE1 화면(00 ~ 08)은 `FE1` 브랜치(`2605774`)를 통합한 것입니다. `FE1` 브랜치 자체는 원본으로 남겨 둡니다.
-- 구현 완료: 00 ~ 08 전체(FE1), 09 퀘스트 투표, 09-1 투표 현황(방장), 09-2 투표 마감 확인, 10 투표 대기, 10-1 퀘스트 확정, 10-2 퀘스트 진행, 18 탐험 종료. 나머지 FE2 화면은 임시 화면(`ScreenPlaceholder`)입니다.
+- 구현 완료: 00 ~ 08 전체(FE1), 09 퀘스트 투표, 09-1 투표 현황(방장), 09-2 투표 마감 확인, 10 투표 대기, 10-1 퀘스트 확정, 10-2 퀘스트 진행, 11 ~ 14 내 기록, 15 탐험 기록, 18 탐험 종료. 나머지 FE2 화면은 임시 화면(`ScreenPlaceholder`)입니다.
 - FE1 → FE2 연결 (협업 규칙 2장 연결 지점 표)
   - 07 퀘스트 선택 시작 / 08에서 `VOTING` 감지 → `` router.replace(`/rooms/${roomId}/vote`) ``
   - 02 홈 이어하기 / 투표 현황 보기 → 방 상태별 이동 (`WAITING` → 대기, `VOTING` → `vote-status`, `VOTE_CLOSED` · `QUEST_CONFIRMED` → `confirm`, `IN_PROGRESS` → `progress`)
   - 02 홈 최근 탐험 카드 → `` `/records/${recordId}` ``
-  - 02 홈 하단 탭: 탐험 → `/condition`, 내 기록 → `/records` (`(tabs)/_layout.tsx` 하단 탭은 아직 없음, 홈에만 탭바가 있음)
+  - 하단 탭(`components/BottomTabBar.tsx`): 홈 → `/home`, 탐험 → `/condition`, 내 기록 → `/records`. 02 홈, 11 내 기록, 15 탐험 기록에서 사용 (`(tabs)/_layout.tsx`는 아직 없음)
 
 ### 09 ~ 10 투표 화면 동작
 
@@ -224,6 +238,14 @@ try { ... } catch (e) {
 - 18: `GET /exploration/progress`로 요약(지역 / 인원 / 완료 퀘스트 수)을 다시 조회하고, 탐험 기록 보러가기 → `/records/{record_id}`.
 - 10-2 / 18의 날짜는 API에 날짜 필드가 없어 기기의 오늘 날짜, 대표 참여자 닉네임은 `GET /rooms/{id}`(더미)에서 가져옵니다.
 
+### 11 ~ 15 내 기록 · 탐험 기록 동작
+
+- 11: 화면에 들어올 때마다 `GET /users/me/statistics`, `GET /users/me/records`를 다시 조회합니다. 카드 → `/records/{record_id}`.
+- 14: 기록이 0개면 안내 블록 + 새로운 탐험 시작 카드 → `/condition`.
+- 12: 연필 아이콘 → 바텀시트(기존 닉네임 채움). 한글·영문·숫자만, 10자 초과 입력은 무시(01과 같은 `utils/nickname.ts`), `n/10`은 10자면 코랄. 기존 닉네임과 같거나 비어 있으면 저장 비활성. 시트 밖 탭 / 뒤로가기로 닫기.
+- 13: 저장 성공(`PATCH /users/me/nickname`) 시 기기 저장 닉네임도 바꾸고, 프로필 글자·색을 다시 계산한 뒤 체크 아이콘 토스트 2초. 실패 시 같은 자리에 오류 토스트.
+- 15: `GET /records/{id}`. 첫 번째 사진은 대표 사진, 나머지는 그날의 사진(가로 스크롤). 사진을 누르면 원본 크게 보기(화면 탭으로 닫기). 기록 남기기 → `/records/{id}/story`. 하단 탭의 내 기록을 누르면 11로 돌아갑니다.
+
 ### 결정 사항
 
 | 항목 | 결정 | 근거 |
@@ -242,6 +264,10 @@ try { ... } catch (e) {
 | 참가자의 기록 번호 (18) | `POST /exploration/finish` 응답의 `record_id`는 방장만 받음. 참가자가 18에서 기록으로 가려면 `GET /exploration/progress`에 `record_id` 필드가 필요해 더미에 추가함 | BE |
 | 탐험 날짜 (10-2 / 18) | 진행 조회 응답에 날짜가 없어 기기의 오늘 날짜로 표시 | BE |
 | 종료 후 완료 변경 오류 코드 | 명세에 전용 코드가 없어 더미는 `ROOM-002`로 응답 | BE |
+| 기록 카드 대표 사진 (11) | `GET /users/me/records`에 사진 필드가 없어 `thumbnail_url`을 더미에 추가함 | BE |
+| 기록 남기기 버튼 위치 (15) | 화면정의에는 "기록 남기기 → 16"이 있으나 디자인 시안에 버튼이 없어 완료한 퀘스트 아래에 둠 | 디자인 |
+| 대표 사진 (15) | 명세에 대표 사진 필드가 없어 `photos`의 첫 번째 사진을 대표 사진으로 사용. 사진이 없으면 회색 영역 | 디자인, BE |
+| 내 기록 닉네임 (11) | 사용자 정보 조회 API가 `bootstrap`뿐이라 기기에 저장된 닉네임을 표시 | BE |
 
 ## 공통 컴포넌트 · 훅
 
@@ -253,7 +279,8 @@ FE1과 겹치던 컴포넌트(헤더, 아바타)는 FE1 것으로 통일했습�
 | --- | --- |
 | `components/ScreenHeader.tsx` | FE1 — `LogoHeader`(로고 + 큰 타이틀 26, `subtitle` 선택), `NavHeader`(중앙 타이틀 Bold 17, `onBack` 있을 때만 뒤로가기) |
 | `components/ProfileAvatar.tsx` | FE1 — 닉네임 첫 글자 아바타. 배경색 = 첫 글자 유니코드 % 6 → `PROFILE_PALETTE`. `size`는 px (필요하면 `scale()` 적용해서 전달) |
-| `components/Toast.tsx` | FE1 — `useToast()` → `{ showToast, toast }` |
+| `components/Toast.tsx` | FE1 — `useToast()` → `{ showToast, toast }`. `showToast(text, { icon: "check" })`는 pill + 코랄 체크 원 (13 변경 완료) |
+| `components/BottomTabBar.tsx` | 하단 알약 탭바 (02 홈에서 분리). `active="home" \| "explore" \| "records"`, `activeNavigable`(하위 화면에서 현재 탭을 눌러 목록으로 돌아가기). 화면 아래쪽에 약 120 여백 필요 |
 | `components/InviteLinkSection.tsx` | FE1 — 초대 링크 복사·공유 (05, 07) |
 | `components/RegionSelectSheet.tsx` | FE1 — 04 지역 선택 바텀시트 |
 | `components/common/PrimaryButton.tsx` | 기본 CTA (353 x 52, radius 14). `variant="filled" \| "outline"`, `disabled`, `loading` |
@@ -268,7 +295,7 @@ FE1과 겹치던 컴포넌트(헤더, 아바타)는 FE1 것으로 통일했습�
 ### FE1 참고
 
 - FE1 API는 `client.ts` / `mock.ts`로 실서버 전환이 되도록 연결했습니다. `nicknameApi.ts` → `userApi.ts`(bootstrap, 닉네임 변경 포함) 정리는 남아 있습니다.
-- `(tabs)/_layout.tsx`(하단 탭)와 `home.tsx`의 `(tabs)` 이동은 FE1 담당입니다.
+- `(tabs)/_layout.tsx`(하단 탭)와 `home.tsx`의 `(tabs)` 이동은 FE1 담당입니다. 그 전까지 02 홈의 탭바를 `components/BottomTabBar.tsx`로 분리해 FE2 화면(11, 15)과 함께 씁니다 (2026-11-03, FE2).
 - 실서버 모드에서 BE가 꺼져 있으면 04 지역 선택 시트에서 처리되지 않은 오류가 납니다 (`RegionSelectSheet`의 조회에 `catch` 없음).
 - 템플릿에서 남은 기존 오류 2건: `src/components/app-tabs.web.tsx`(삭제된 `/explore` 참조, tsc), `src/hooks/use-color-scheme.web.ts`(lint)
 
@@ -280,7 +307,7 @@ FE1과 겹치던 컴포넌트(헤더, 아바타)는 FE1 것으로 통일했습�
 
 09-1 / 10 화면으로 확인: 실제 `is_host` 값으로 방장(09-1) / 초대 참여자(10) 화면 분기 정상.
 
-- BE 미구현으로 FE에서 더미 처리 중: `GET /home`, `GET /votes/status`, `GET /votes/close-preview`, `POST /votes/close`, `GET /rooms/{id}`, `POST /rooms/{id}/host/takeover`, `GET /final-quests/preview`, `POST /final-quests/tie-break`, `POST /final-quests`, `POST /exploration/start`, `GET /exploration/progress`, `PATCH /final-quests/{id}/progress`, `POST /exploration/finish`
+- BE 미구현으로 FE에서 더미 처리 중: `GET /home`, `GET /votes/status`, `GET /votes/close-preview`, `POST /votes/close`, `GET /rooms/{id}`, `POST /rooms/{id}/host/takeover`, `GET /final-quests/preview`, `POST /final-quests/tie-break`, `POST /final-quests`, `POST /exploration/start`, `GET /exploration/progress`, `PATCH /final-quests/{id}/progress`, `POST /exploration/finish`, `GET /users/me/statistics`, `GET /users/me/records`, `GET /records/{id}`
   - BE 작업분이 push되면 각 API 파일의 `*_API_PENDING`을 `false`로 바꿉니다.
 - 지역 썸네일 (FE1 요청서: `region.image_url` 컬럼 추가) — FE 타입·화면은 준비 완료, 더미 값은 `null`(회색 기본 이미지)
   - `GET /home`: `recent_records[].thumbnail_url`, `popular_regions[].region_image_url`

@@ -232,7 +232,8 @@ FE1과 FE2가 각각 만든 같은 역할의 컴포넌트는 **FE1 것으로 통
 src/components/
   ScreenHeader.tsx    // FE1 — LogoHeader(로고 + 타이틀, subtitle 선택), NavHeader(중앙 타이틀 Bold 17 + 뒤로가기)
   ProfileAvatar.tsx   // FE1 — 닉네임 첫 1자, (첫 글자 유니코드 % 6) 프로필 팔레트
-  Toast.tsx           // FE1 — 배경 #1F1F22, 2초 노출 (useToast)
+  Toast.tsx           // FE1 — 배경 #1F1F22, 2초 노출 (useToast). 체크 아이콘 pill 옵션 (FE2 추가)
+  BottomTabBar.tsx    // 하단 탭 (02 홈에서 분리, FE2) — (tabs)/_layout.tsx가 생기면 그쪽으로 이동
 src/components/common/
   PrimaryButton.tsx   // 기본 CTA 353 x 52, radius 14, 비활성 #F2F2F2 / 글자 #A5A5A5
   ConfirmDialog.tsx   // 확인창 (투표 마감 확인 등)

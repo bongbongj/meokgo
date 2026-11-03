@@ -11,7 +11,6 @@ import {
   ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { SymbolView, type SymbolViewProps } from "expo-symbols";
 import { router } from "expo-router";
 import { COLORS } from "../constants/colors";
 import { scale, verticalScale, moderateScale } from "../utils/responsive";
@@ -23,26 +22,8 @@ import {
   IS_HOME_MOCK,
 } from "../api/homeApi";
 import { formatCompactDotDate } from "../utils/date";
+import BottomTabBar from "../components/BottomTabBar";
 import SplashScreen from "./SplashScreen";
-
-// 하단 탭 (아이콘 파일 전달 전까지 시스템 심볼 사용)
-const TABS: {
-  label: string;
-  icon: SymbolViewProps["name"];
-  href: "/home" | "/condition" | "/records";
-}[] = [
-  { label: "홈", icon: { ios: "house", android: "home", web: "home" }, href: "/home" },
-  {
-    label: "탐험",
-    icon: { ios: "safari", android: "explore", web: "explore" },
-    href: "/condition",
-  },
-  {
-    label: "내 기록",
-    icon: { ios: "person", android: "person", web: "person" },
-    href: "/records",
-  },
-];
 
 // 이어하기 / 투표 현황 보기: 방 상태별 이동 화면 (FE 협업 규칙 4.3)
 const goActiveRoom = ({ room_id, room_status }: ActiveRoom) => {
@@ -287,32 +268,7 @@ export default function HomeScreen() {
           </View>
         </ScrollView>
 
-        {/* 하단 알약 탭바 */}
-        <View style={styles.bottomTabBar}>
-          {TABS.map((tab, idx) => {
-            const isActive = idx === 0;
-            const color = isActive ? COLORS.primary : COLORS.textMain;
-            return (
-              <TouchableOpacity
-                key={tab.label}
-                style={[styles.tabItem, isActive && styles.tabItemActive]}
-                activeOpacity={0.7}
-                onPress={() => !isActive && router.push(tab.href)}
-              >
-                <SymbolView
-                  name={tab.icon}
-                  size={moderateScale(24)}
-                  tintColor={color}
-                />
-                <Text
-                  style={[styles.tabText, { color }, isActive && styles.tabTextActive]}
-                >
-                  {tab.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+        <BottomTabBar active="home" />
       </View>
     </SafeAreaView>
   );
@@ -524,35 +480,4 @@ const styles = StyleSheet.create({
     color: COLORS.textSub,
     marginLeft: scale(5),
   },
-
-  bottomTabBar: {
-    position: "absolute",
-    bottom: verticalScale(36),
-    width: scale(302),
-    height: verticalScale(62),
-    backgroundColor: COLORS.cardBg,
-    borderRadius: scale(31),
-    alignSelf: "center",
-    flexDirection: "row",
-    alignItems: "center",
-    padding: scale(3),
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 5,
-  },
-  tabItem: {
-    flex: 1,
-    height: "100%",
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: scale(28),
-  },
-  tabItemActive: { backgroundColor: COLORS.tabActiveBg },
-  tabText: {
-    fontSize: moderateScale(11),
-    marginTop: verticalScale(4),
-  },
-  tabTextActive: { fontWeight: "bold" },
 });

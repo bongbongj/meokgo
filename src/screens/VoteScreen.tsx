@@ -1,5 +1,5 @@
 // src/screens/VoteScreen.tsx
-// 07. 퀘스트 투표
+// 09. 퀘스트 투표
 // - 후보 6개 중 최소 1개 ~ 최대 3개 선택 (3개 선택 후 추가 선택은 반응 없음)
 // - 이미 투표했다면 기존 선택을 복원하고, 제출 시 덮어쓴다 (마지막 제출만 집계)
 // - 제출 후 투표 대기 화면으로 이동
@@ -23,7 +23,7 @@ import {
   QuestCandidateList,
   submitMyVote,
 } from "../api/voteApi";
-import LogoHeader from "../components/common/LogoHeader";
+import { LogoHeader } from "../components/ScreenHeader";
 import CheckCircle from "../components/common/CheckCircle";
 import PrimaryButton from "../components/common/PrimaryButton";
 

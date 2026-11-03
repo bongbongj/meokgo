@@ -8,5 +8,5 @@ interface RecordDetailScreenProps {
 }
 
 export default function RecordDetailScreen({ recordId }: RecordDetailScreenProps) {
-  return <ScreenPlaceholder title="14. 탐험 기록 상세" params={{ recordId }} />;
+  return <ScreenPlaceholder title="15. 탐험 기록" params={{ recordId }} />;
 }

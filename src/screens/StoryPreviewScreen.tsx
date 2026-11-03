@@ -8,5 +8,5 @@ interface StoryPreviewScreenProps {
 }
 
 export default function StoryPreviewScreen({ recordId }: StoryPreviewScreenProps) {
-  return <ScreenPlaceholder title="16. 기록 미리보기" params={{ recordId }} />;
+  return <ScreenPlaceholder title="17. 기록 미리보기" params={{ recordId }} />;
 }

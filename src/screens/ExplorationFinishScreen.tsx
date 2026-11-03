@@ -8,5 +8,5 @@ interface ExplorationFinishScreenProps {
 }
 
 export default function ExplorationFinishScreen({ roomId }: ExplorationFinishScreenProps) {
-  return <ScreenPlaceholder title="12. 탐험 종료" params={{ roomId }} />;
+  return <ScreenPlaceholder title="18. 탐험 종료" params={{ roomId }} />;
 }

@@ -41,7 +41,7 @@ const styles = StyleSheet.create({
   unchecked: {
     backgroundColor: COLORS.background,
     borderWidth: 1.5,
-    borderColor: COLORS.checkBorder,
+    borderColor: COLORS.emptyCircleBorder,
   },
   checkMark: {
     borderLeftWidth: 2,

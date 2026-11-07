@@ -56,9 +56,11 @@ export default function ConditionScreen() {
 
   useEffect(() => {
     let ignore = false;
-    fetchRecentRegions().then((res) => {
-      if (!ignore) setRecentRegions(res.data.recent_regions);
-    });
+    fetchRecentRegions()
+      .then((res) => {
+        if (!ignore) setRecentRegions(res.data.recent_regions);
+      })
+      .catch(() => {});
     return () => {
       ignore = true;
     };

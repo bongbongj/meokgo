@@ -51,9 +51,13 @@ export default function HomeScreen() {
   // API 데이터 호출
   useEffect(() => {
     let ignore = false; // 늦게 도착한 이전 응답이 덮어쓰지 않도록
-    fetchHomeData(mockType).then((res) => {
-      if (!ignore && res.success) setHomeData(res.data);
-    });
+    fetchHomeData(mockType)
+      .then((res) => {
+        if (!ignore && res.success) setHomeData(res.data);
+      })
+      .catch(() => {
+        // 서버 연결 실패 시 홈 데이터 없이 표시
+      });
     return () => {
       ignore = true;
     };

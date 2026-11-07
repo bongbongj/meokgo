@@ -54,14 +54,18 @@ export default function RegionSelectSheet({
   useEffect(() => {
     if (!visible) return;
     let ignore = false;
-    fetchRegions({}).then((res) => {
-      if (ignore) return;
-      setCities(res.data.regions);
-      setOpenCityId((prev) => prev ?? res.data.regions[0]?.region_id ?? null);
-    });
-    fetchRecentRegions().then((res) => {
-      if (!ignore) setRecentRegions(res.data.recent_regions);
-    });
+    fetchRegions({})
+      .then((res) => {
+        if (ignore) return;
+        setCities(res.data.regions);
+        setOpenCityId((prev) => prev ?? res.data.regions[0]?.region_id ?? null);
+      })
+      .catch(() => {});
+    fetchRecentRegions()
+      .then((res) => {
+        if (!ignore) setRecentRegions(res.data.recent_regions);
+      })
+      .catch(() => {});
     return () => {
       ignore = true;
     };
@@ -77,9 +81,11 @@ export default function RegionSelectSheet({
         ? { parent_region_id: openCityId }
         : null;
     if (!params) return;
-    fetchRegions(params).then((res) => {
-      if (!ignore) setDistricts(res.data.regions);
-    });
+    fetchRegions(params)
+      .then((res) => {
+        if (!ignore) setDistricts(res.data.regions);
+      })
+      .catch(() => {});
     return () => {
       ignore = true;
     };

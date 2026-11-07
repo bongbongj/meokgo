@@ -6,6 +6,7 @@ import com.meokgo.server.domain.quest.repository.QuestRepository;
 import com.meokgo.server.domain.region.domain.Region;
 import com.meokgo.server.domain.region.repository.RegionRepository;
 import com.meokgo.server.domain.room.domain.ScheduleType;
+import java.util.ArrayList;
 import java.util.List;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -45,7 +46,7 @@ public class InitialDataLoader implements ApplicationRunner {
         if (questRepository.count() > 0) {
             return;
         }
-        questRepository.saveAll(List.of(
+        List<Quest> quests = new ArrayList<>(List.of(
                 new Quest("모두 처음 가는 식당 가기", "오늘의 탐험 지역에서 모두 처음 가보는 식당을 찾아보세요.", QuestType.COMMON, ScheduleType.MEAL),
                 new Quest("메인 메뉴 하나씩 다르게 고르기", "각자 다른 메인 메뉴를 골라 테이블을 풍성하게 만들어보세요.", QuestType.COMMON, ScheduleType.MEAL),
                 new Quest("가게 사장님 추천 메뉴 먹기", "직원이나 사장님에게 추천 메뉴를 물어보고 주문해보세요.", QuestType.COMMON, ScheduleType.MEAL),
@@ -57,5 +58,16 @@ public class InitialDataLoader implements ApplicationRunner {
                 new Quest("지도 없이 5분 걷고 고르기", "정해둔 방향으로 5분 걷고 눈에 띄는 가게를 골라보세요.", QuestType.COMMON, ScheduleType.MEAL),
                 new Quest("다음에 올 후보 한 곳 저장하기", "오늘 가지 못한 가게 중 다음 후보를 하나 정해보세요.", QuestType.COMMON, ScheduleType.MEAL)
         ));
+        for (ScheduleType schedule : List.of(ScheduleType.CAFE, ScheduleType.PUB, ScheduleType.SECOND_ROUND)) {
+            quests.addAll(List.of(
+                    new Quest("모두 처음 가는 가게 고르기", "참여자 모두 처음 방문하는 가게를 함께 골라보세요.", QuestType.COMMON, schedule),
+                    new Quest("각자 원하는 메뉴 제안하기", "먹거나 마시고 싶은 메뉴를 하나씩 제안하고 함께 정해보세요.", QuestType.COOPERATIVE, schedule),
+                    new Quest("메뉴 설명 읽고 선택하기", "메뉴 설명을 읽고 취향에 맞는 메뉴를 골라보세요.", QuestType.COMMON, schedule),
+                    new Quest("가게 분위기 한마디 나누기", "가게에서 마음에 드는 점을 한 가지씩 이야기해보세요.", QuestType.COOPERATIVE, schedule),
+                    new Quest("오늘의 메뉴 한 줄 평가하기", "각자 고른 메뉴를 한 문장으로 표현해보세요.", QuestType.COMMON, schedule),
+                    new Quest("다음 방문 후보 정하기", "다음에 함께 방문하고 싶은 가게를 한 곳 정해보세요.", QuestType.REVISIT, schedule)
+            ));
+        }
+        questRepository.saveAll(quests);
     }
 }

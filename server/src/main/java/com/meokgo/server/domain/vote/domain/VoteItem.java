@@ -13,10 +13,12 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "vote_item")
+@Table(name = "vote_item", uniqueConstraints =
+        @UniqueConstraint(columnNames = {"vote_id", "participant_id", "candidate_id"}))
 public class VoteItem {
 
     @Id
@@ -49,6 +51,10 @@ public class VoteItem {
         this.vote = vote;
         this.participant = participant;
         this.candidate = candidate;
+    }
+
+    public void touch() {
+        this.updatedAt = LocalDateTime.now();
     }
 
     public RoomQuestCandidate getCandidate() {

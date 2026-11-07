@@ -93,6 +93,43 @@ public class ExplorationRoom {
         touchHostAction();
     }
 
+    public void closeVote() {
+        this.status = RoomStatus.VOTE_CLOSED;
+        this.voteClosedAt = LocalDateTime.now();
+        touchHostAction();
+    }
+
+    public void confirmQuests() {
+        this.status = RoomStatus.QUEST_CONFIRMED;
+        touchHostAction();
+    }
+
+    public void startExploration() {
+        this.status = RoomStatus.IN_PROGRESS;
+        touchHostAction();
+    }
+
+    public void finishExploration() {
+        this.status = RoomStatus.FINISHED;
+        touchHostAction();
+    }
+
+    public void changeHost(DeviceUser user) {
+        this.hostUser = user;
+        touchHostAction();
+    }
+
+    public boolean isActive() {
+        return status != RoomStatus.FINISHED && status != RoomStatus.EXPIRED
+                && expiredAt.isAfter(LocalDateTime.now());
+    }
+
+    public void expireIfDue() {
+        if (status != RoomStatus.FINISHED && !expiredAt.isAfter(LocalDateTime.now())) {
+            this.status = RoomStatus.EXPIRED;
+        }
+    }
+
     public boolean isJoinable() {
         return status == RoomStatus.WAITING && expiredAt.isAfter(LocalDateTime.now());
     }

@@ -5,7 +5,7 @@ import java.util.List;
 public record CreateQuestCandidatesResponse(
         Long roomId,
         int candidateCount,
-        boolean filledWithCommonQuest,
+        boolean filledWithHistoryQuest,
         boolean needConditionReset,
         List<QuestCandidateItemResponse> candidates
 ) {

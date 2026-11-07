@@ -12,12 +12,15 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
-import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "room_participant")
+@Table(name = "room_participant", uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"room_id", "user_id"}),
+        @UniqueConstraint(columnNames = {"room_id", "nickname"})
+})
 public class RoomParticipant {
 
     @Id
@@ -95,8 +98,39 @@ public class RoomParticipant {
         this.lastConnectedAt = LocalDateTime.now();
     }
 
+    public void connect() {
+        this.lastConnectedAt = LocalDateTime.now();
+    }
+
+    public boolean isConnected(LocalDateTime now, long timeoutSeconds) {
+        return status != ParticipantStatus.LEFT && lastConnectedAt != null
+                && lastConnectedAt.isAfter(now.minusSeconds(timeoutSeconds));
+    }
+
+    public void becomeHost() {
+        this.role = ParticipantRole.HOST;
+    }
+
+    public void becomeMember() {
+        this.role = ParticipantRole.MEMBER;
+    }
+
     public void startVoting() {
         this.status = ParticipantStatus.VOTING;
+    }
+
+    public void ready() {
+        if (status != ParticipantStatus.LEFT) {
+            this.status = ParticipantStatus.READY;
+        }
+    }
+
+    public void startExploration() {
+        this.status = ParticipantStatus.EXPLORING;
+    }
+
+    public void finishExploration() {
+        this.status = ParticipantStatus.FINISHED;
     }
 
     public void submitVote() {
@@ -143,10 +177,5 @@ public class RoomParticipant {
     @PrePersist
     void prePersist() {
         this.joinedAt = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    void preUpdate() {
-        this.lastConnectedAt = LocalDateTime.now();
     }
 }

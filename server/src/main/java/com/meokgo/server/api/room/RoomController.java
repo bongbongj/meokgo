@@ -2,7 +2,10 @@ package com.meokgo.server.api.room;
 
 import com.meokgo.server.api.room.dto.CreateRoomRequest;
 import com.meokgo.server.api.room.dto.CreateRoomResponse;
+import com.meokgo.server.api.room.dto.RestoreParticipantResponse;
+import com.meokgo.server.api.room.dto.RoomDetailResponse;
 import com.meokgo.server.api.room.dto.StartVoteResponse;
+import com.meokgo.server.api.room.dto.TakeoverHostResponse;
 import com.meokgo.server.api.room.dto.WaitingStatusResponse;
 import com.meokgo.server.domain.room.service.RoomService;
 import com.meokgo.server.global.response.ApiResponse;
@@ -35,6 +38,21 @@ public class RoomController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(ApiResponse.success(roomService.createRoom(deviceKey, request)));
+    }
+
+    @GetMapping("/{roomId}")
+    public ApiResponse<RoomDetailResponse> detail(@DeviceKey String deviceKey, @PathVariable Long roomId) {
+        return ApiResponse.success(roomService.getDetail(deviceKey, roomId));
+    }
+
+    @GetMapping("/{roomId}/participants/me")
+    public ApiResponse<RestoreParticipantResponse> restore(@DeviceKey String deviceKey, @PathVariable Long roomId) {
+        return ApiResponse.success(roomService.restoreParticipant(deviceKey, roomId));
+    }
+
+    @PostMapping("/{roomId}/host/takeover")
+    public ApiResponse<TakeoverHostResponse> takeover(@DeviceKey String deviceKey, @PathVariable Long roomId) {
+        return ApiResponse.success(roomService.takeoverHost(deviceKey, roomId));
     }
 
     @GetMapping("/{roomId}/waiting-status")

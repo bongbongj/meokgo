@@ -47,8 +47,6 @@ class VoteFlowTest {
                                   "region_id": %d,
                                   "schedule_type": "MEAL",
                                   "time_slot": "DINNER",
-                                  "budget_min": 10000,
-                                  "budget_max": 30000,
                                   "drinking_option": "ANY",
                                   "avoid_foods": "매운 음식"
                                 }
@@ -73,7 +71,8 @@ class VoteFlowTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.restored_by_device", is(false)));
 
-        MvcResult candidateResult = mockMvc.perform(post("/api/v1/rooms/{roomId}/quest-candidates", roomId))
+        MvcResult candidateResult = mockMvc.perform(post("/api/v1/rooms/{roomId}/quest-candidates", roomId)
+                        .header("X-Device-Key", "host-device"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.candidates", hasSize(6)))
                 .andReturn();

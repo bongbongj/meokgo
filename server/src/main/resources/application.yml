@@ -1,6 +1,10 @@
 spring:
   application:
     name: meokgo-server
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 41MB
   jackson:
     property-naming-strategy: SNAKE_CASE
   profiles:
@@ -39,5 +43,12 @@ springdoc:
     tags-sorter: alpha
 
 app:
+  retention:
+    region-master-visit-days: ${RETENTION_REGION_MASTER_VISIT_DAYS:3}
+  storage:
+    local-root: ${STORAGE_LOCAL_ROOT:./storage}
+    cleanup-delay-ms: ${STORAGE_CLEANUP_DELAY_MS:3600000}
+  story:
+    font-family: ${STORY_FONT_FAMILY:SansSerif}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173,http://localhost:8081}

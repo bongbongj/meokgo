@@ -1,10 +1,11 @@
 package com.meokgo.server.domain.quest.repository;
 
 import com.meokgo.server.domain.quest.domain.Quest;
+import com.meokgo.server.domain.room.domain.ScheduleType;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface QuestRepository extends JpaRepository<Quest, Long> {
 
-    List<Quest> findTop6ByActiveTrueOrderByIdAsc();
+    List<Quest> findByActiveTrueAndScheduleType(ScheduleType scheduleType);
 }

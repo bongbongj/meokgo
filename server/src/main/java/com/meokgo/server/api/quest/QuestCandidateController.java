@@ -22,8 +22,9 @@ public class QuestCandidateController {
     }
 
     @PostMapping
-    public ApiResponse<CreateQuestCandidatesResponse> createCandidates(@PathVariable Long roomId) {
-        return ApiResponse.success(questCandidateService.createCandidates(roomId));
+    public ApiResponse<CreateQuestCandidatesResponse> createCandidates(
+            @DeviceKey String deviceKey, @PathVariable Long roomId) {
+        return ApiResponse.success(questCandidateService.createCandidates(deviceKey, roomId));
     }
 
     @GetMapping

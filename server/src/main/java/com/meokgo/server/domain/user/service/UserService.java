@@ -2,10 +2,17 @@ package com.meokgo.server.domain.user.service;
 
 import com.meokgo.server.api.user.dto.BootstrapResponse;
 import com.meokgo.server.api.user.dto.NicknameResponse;
+import com.meokgo.server.domain.room.domain.ParticipantStatus;
+import com.meokgo.server.domain.room.domain.RoomParticipant;
+import com.meokgo.server.domain.room.domain.RoomStatus;
+import com.meokgo.server.domain.room.repository.RoomParticipantRepository;
 import com.meokgo.server.domain.user.domain.DeviceUser;
 import com.meokgo.server.domain.user.repository.DeviceUserRepository;
 import com.meokgo.server.global.error.BusinessException;
 import com.meokgo.server.global.error.ErrorCode;
+import java.time.LocalDateTime;
+import java.util.List;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,9 +21,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private final DeviceUserRepository deviceUserRepository;
+    private final RoomParticipantRepository participantRepository;
 
-    public UserService(DeviceUserRepository deviceUserRepository) {
+    public UserService(DeviceUserRepository deviceUserRepository, RoomParticipantRepository participantRepository) {
         this.deviceUserRepository = deviceUserRepository;
+        this.participantRepository = participantRepository;
     }
 
     public BootstrapResponse getBootstrap(String deviceKey) {
@@ -49,16 +58,13 @@ public class UserService {
     }
 
     private BootstrapResponse toExistingBootstrapResponse(DeviceUser user) {
-        return new BootstrapResponse(
-                user.getId(),
-                user.getNickname(),
-                user.isFirstLaunch(),
-                false,
-                null,
-                null,
-                false,
-                false
-        );
+        RoomParticipant participant = participantRepository.findActiveByUser(user, ParticipantStatus.LEFT,
+                List.of(RoomStatus.FINISHED, RoomStatus.EXPIRED), LocalDateTime.now(), PageRequest.of(0, 1))
+                .stream().findFirst().orElse(null);
+        return new BootstrapResponse(user.getId(), user.getNickname(), user.isFirstLaunch(), participant != null,
+                participant == null ? null : participant.getRoom().getId(),
+                participant == null ? null : participant.getId(), participant != null,
+                participant != null && participant.isVoteSubmitted());
     }
 
     private BootstrapResponse toFirstLaunchBootstrapResponse() {

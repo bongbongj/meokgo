@@ -14,6 +14,8 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
 
 @Entity
 @Table(name = "quest")
@@ -46,6 +48,21 @@ public class Quest {
     @Column(name = "drinking_option", length = 30)
     private DrinkingOption drinkingOption;
 
+    @Column(name = "food_keywords", length = 500)
+    private String foodKeywords;
+
+    @Column(name = "excluded_keywords", length = 500)
+    private String excludedKeywords;
+
+    @Column(name = "forced_preference_yn", nullable = false)
+    private boolean forcedPreference;
+
+    @Column(name = "risky_competition_yn", nullable = false)
+    private boolean riskyCompetition;
+
+    @Column(name = "activity_yn", nullable = false)
+    private boolean activity;
+
     @Column(name = "active_yn", nullable = false)
     private boolean active;
 
@@ -66,6 +83,35 @@ public class Quest {
         this.timeSlot = TimeSlot.ANY;
         this.drinkingOption = DrinkingOption.ANY;
         this.active = true;
+    }
+
+    public Quest(String title, String description, QuestType type, ScheduleType scheduleType,
+            TimeSlot timeSlot, DrinkingOption drinkingOption, List<String> foodKeywords,
+            List<String> excludedKeywords) {
+        this(title, description, type, scheduleType);
+        this.timeSlot = timeSlot;
+        this.drinkingOption = drinkingOption;
+        this.foodKeywords = String.join(",", foodKeywords);
+        this.excludedKeywords = String.join(",", excludedKeywords);
+    }
+
+    public ScheduleType getScheduleType() {
+        return scheduleType;
+    }
+
+    public TimeSlot getTimeSlot() {
+        return timeSlot;
+    }
+
+    public DrinkingOption getDrinkingOption() {
+        return drinkingOption;
+    }
+
+    public List<String> getExcludedKeywords() {
+        if (excludedKeywords == null || excludedKeywords.isBlank()) {
+            return List.of();
+        }
+        return Arrays.stream(excludedKeywords.split(",")).map(String::trim).filter(value -> !value.isEmpty()).toList();
     }
 
     public Long getId() {

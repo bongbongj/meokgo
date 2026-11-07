@@ -38,7 +38,10 @@ public enum ErrorCode {
 
     RECORD_NOT_FOUND("RECORD-001", HttpStatus.NOT_FOUND, "탐험 기록을 찾을 수 없습니다."),
     STORY_NOT_SELECTED("STORY-001", HttpStatus.BAD_REQUEST, "Story 제작을 선택하지 않았습니다."),
-    FILE_INVALID("FILE-001", HttpStatus.BAD_REQUEST, "업로드 파일 형식 또는 개수가 올바르지 않습니다.");
+    FILE_INVALID("FILE-001", HttpStatus.BAD_REQUEST, "업로드 파일 형식 또는 개수가 올바르지 않습니다."),
+    FILE_STORAGE_FAILED("FILE-002", HttpStatus.INTERNAL_SERVER_ERROR, "이미지 저장소 처리에 실패했습니다."),
+    FILE_NOT_FOUND("FILE-003", HttpStatus.GONE, "이미지가 만료되었거나 삭제되었습니다."),
+    STORY_IMAGE_NOT_FOUND("STORY-002", HttpStatus.NOT_FOUND, "스토리 이미지를 찾을 수 없습니다.");
 
     private final String code;
     private final HttpStatus status;

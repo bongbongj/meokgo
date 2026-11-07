@@ -1,5 +1,8 @@
 package com.meokgo.server.global.config;
 
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import io.swagger.v3.core.jackson.ModelResolver;
+import io.swagger.v3.core.util.Json;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
@@ -15,6 +18,16 @@ import org.springframework.context.annotation.Configuration;
 public class OpenApiConfig {
 
     private static final String DEVICE_KEY_SCHEME = "X-Device-Key";
+
+    /**
+     * Swagger 스키마의 필드명을 실제 API의 스네이크 표기와 일치시킨다.
+     * @author 정효림
+     */
+    @Bean
+    public ModelResolver modelResolver() {
+        return new ModelResolver(Json.mapper().copy()
+                .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE));
+    }
 
     @Bean
     public OpenAPI openAPI() {

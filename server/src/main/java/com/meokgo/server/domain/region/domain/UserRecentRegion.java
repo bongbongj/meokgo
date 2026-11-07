@@ -41,6 +41,10 @@ public class UserRecentRegion {
         this.region = region;
     }
 
+    public void selectAgain() {
+        this.selectedAt = LocalDateTime.now();
+    }
+
     public Long getId() {
         return id;
     }

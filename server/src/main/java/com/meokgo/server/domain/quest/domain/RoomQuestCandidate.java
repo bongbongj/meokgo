@@ -11,10 +11,14 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "room_quest_candidate")
+@Table(name = "room_quest_candidate", uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"room_id", "quest_id"}),
+        @UniqueConstraint(columnNames = {"room_id", "candidate_order"})
+})
 public class RoomQuestCandidate {
 
     @Id
@@ -39,18 +43,26 @@ public class RoomQuestCandidate {
     @Column(name = "suppressed_by_history_yn", nullable = false)
     private boolean suppressedByHistory;
 
+    @Column(name = "completed_participant_count", nullable = false)
+    private int completedParticipantCount;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     protected RoomQuestCandidate() {
     }
 
-    public RoomQuestCandidate(ExplorationRoom room, Quest quest, int candidateOrder, String selectedReason) {
+    public RoomQuestCandidate(ExplorationRoom room, Quest quest, int candidateOrder, String selectedReason, int completedParticipantCount) {
         this.room = room;
         this.quest = quest;
         this.candidateOrder = candidateOrder;
         this.selectedReason = selectedReason;
-        this.suppressedByHistory = false;
+        this.completedParticipantCount = completedParticipantCount;
+        this.suppressedByHistory = completedParticipantCount > 0;
+    }
+
+    public int getCompletedParticipantCount() {
+        return completedParticipantCount;
     }
 
     public Long getId() {

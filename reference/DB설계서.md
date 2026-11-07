@@ -2,7 +2,7 @@
 
 > 작성 기준일: 2026-10-06
 >
-> 최종 수정일: 2026-11-03
+> 최종 수정일: 2026-11-07
 >
 > 기준 서비스: 먹으러GO
 >
@@ -200,6 +200,7 @@ retention_stage 1 : N user_retention_stage
 | 6 | active_yn | TINYINT(1) | O |  |  |  | 1 | 사용 여부 |
 | 7 | created_at | DATETIME | O |  |  |  | CURRENT_TIMESTAMP | 생성 일시 |
 | 8 | updated_at | DATETIME | O |  |  |  | CURRENT_TIMESTAMP | 수정 일시 |
+| 9 | image_url | VARCHAR(500) |  |  |  |  | NULL | 지역 대표 이미지 HTTPS 절대 URL |
 
 ### 제약조건
 
@@ -208,6 +209,14 @@ retention_stage 1 : N user_retention_stage
 | FK | parent_region_id -> region.region_id | 지역 계층 구조 표현 |
 | INDEX | parent_region_id, display_order | 지역 분류 조회 최적화 |
 | INDEX | active_yn | 활성 지역 조회 |
+
+### 지역 대표 이미지 정책
+
+- 선택 가능한 모든 지역에 대표 이미지 1장을 등록할 수 있다. 특정 예시 지역으로 제한하지 않는다.
+- 이미지가 없으면 `image_url`은 NULL로 유지한다. 빈 문자열이나 예시 주소를 실제 데이터로 등록하지 않는다.
+- 500자 이내 HTTPS 절대 URL을 저장한다. 4:3 비율, 가로 800픽셀 이상, JPG 또는 WebP, 장당 300KB 이하를 권장한다.
+- 저장 위치는 S3를 우선하고 초기 서버 로컬 저장을 허용한다. 로컬 저장도 외부 접근 가능한 HTTPS 주소로 제공해야 한다.
+- 지역 대표 이미지는 개인 기록 사진과 독립적으로 유지하며 30일 만료·삭제 대상에서 제외한다.
 
 ---
 

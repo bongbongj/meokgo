@@ -2,8 +2,8 @@ package com.meokgo.server.domain.home.service;
 
 import com.meokgo.server.api.home.dto.HomeResponse.ActiveRoom;
 import com.meokgo.server.api.home.dto.HomeResponse.PopularRegion;
+import com.meokgo.server.api.home.dto.HomeResponse.RecentRecord;
 import com.meokgo.server.api.home.dto.HomeResponse;
-import com.meokgo.server.api.record.dto.RecordListItemResponse;
 import com.meokgo.server.domain.exploration.repository.QuestProgressRepository;
 import com.meokgo.server.domain.quest.repository.FinalQuestRepository;
 import com.meokgo.server.domain.record.repository.ExplorationRecordRepository;
@@ -51,10 +51,12 @@ public class HomeService {
                 List.of(RoomStatus.FINISHED, RoomStatus.EXPIRED), LocalDateTime.now(), PageRequest.of(0, 1))
                 .stream().findFirst().map(this::activeRoom).orElse(null);
         var recent = recordRepository.findByUserOrderByCreatedAtDescIdDesc(user, PageRequest.of(0, 3)).stream()
-                .map(record -> new RecordListItemResponse(record.getId(), record.getRegion().getName(),
-                        record.getParticipantCount(), record.getCompletedQuestCount(), record.getCreatedAt())).toList();
+                .map(record -> new RecentRecord(record.getId(), record.getRegion().getName(),
+                        record.getParticipantCount(), record.getCompletedQuestCount(), record.getCreatedAt(),
+                        record.getRegion().getImageUrl())).toList();
         var popular = recordRepository.findPopularRegions(PageRequest.of(0, 3)).stream()
-                .map(value -> new PopularRegion(value.getRegionId(), value.getRegionName(), value.getExplorationCount()))
+                .map(value -> new PopularRegion(value.getRegionId(), value.getRegionName(), value.getExplorationCount(),
+                        value.getRegionImageUrl()))
                 .toList();
         return new HomeResponse(active, recent, popular, retentionService.summary(stages));
     }

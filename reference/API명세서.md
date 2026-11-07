@@ -2,7 +2,7 @@
 
 > 작성 기준일: 2026-10-06
 >
-> 최종 수정일: 2026-11-03
+> 최종 수정일: 2026-11-07
 >
 > 기준 서비스: 먹으러GO
 >
@@ -287,14 +287,16 @@ MVP에서는 회원 로그인 없이 기기 기반 사용자 식별을 사용한
         "record_id": 3,
         "region_name": "성수",
         "completed_quest_count": 3,
-        "created_at": "2026-10-06T01:30:00"
+        "created_at": "2026-10-06T01:30:00",
+        "thumbnail_url": null
       }
     ],
     "popular_regions": [
       {
         "region_id": 1,
         "region_name": "홍대",
-        "exploration_count": 12
+        "exploration_count": 12,
+        "region_image_url": null
       }
     ],
     "retention": {
@@ -305,6 +307,14 @@ MVP에서는 회원 로그인 없이 기기 기반 사용자 식별을 사용한
   }
 }
 ```
+
+**지역 대표 이미지 정책**
+
+- `recent_records[].thumbnail_url`은 현재 해당 기록 지역의 `region.image_url`을 반환한다. 추후 썸네일 선정 정책을 변경하더라도 응답 필드명은 유지한다.
+- `popular_regions[].region_image_url`은 해당 지역의 대표 이미지 URL이다.
+- 이미지가 없는 경우 필드를 생략하거나 빈 문자열을 반환하지 않고 `null`을 반환한다. 앱은 회색 기본 이미지를 표시한다.
+- 등록 주소는 500자 이내의 HTTPS 절대 URL이다. 사진은 4:3 비율·가로 800픽셀 이상·JPG 또는 WebP·장당 300KB 이하를 권장하며 원형 자르기는 앱에서 처리한다.
+- 지역 대표 이미지는 모든 등록 지역에 적용할 수 있으며 개인 사진·스토리의 30일 만료 정리 대상에 포함하지 않는다.
 
 ---
 
@@ -336,19 +346,22 @@ MVP에서는 회원 로그인 없이 기기 기반 사용자 식별을 사용한
         "region_id": 1,
         "region_name": "홍대",
         "region_level": "DISTRICT",
-        "parent_region_id": null
+        "parent_region_id": null,
+        "region_image_url": null
       },
       {
         "region_id": 2,
         "region_name": "성수",
         "region_level": "DISTRICT",
-        "parent_region_id": null
+        "parent_region_id": null,
+        "region_image_url": null
       },
       {
         "region_id": 3,
         "region_name": "망원",
         "region_level": "DISTRICT",
-        "parent_region_id": null
+        "parent_region_id": null,
+        "region_image_url": null
       }
     ]
   }
@@ -359,6 +372,7 @@ MVP에서는 회원 로그인 없이 기기 기반 사용자 식별을 사용한
 
 - 응답의 `홍대`, `성수`, `망원`은 지역 데이터 예시이며, 운영 지역 목록을 이 3개로 제한하지 않는다.
 - 실제 선택지는 `region`에 등록된 활성 지역을 기준으로 제공한다.
+- `regions[].region_image_url`은 지역 대표 이미지의 HTTPS 절대 URL이며 미등록이면 필드를 유지한 채 `null`을 반환한다.
 - 지역을 추가할 때 지역별 퀘스트를 별도로 등록할 필요가 없다. 모든 지역에서 같은 공통 퀘스트 DB를 사용한다.
 
 ---
@@ -381,12 +395,17 @@ MVP에서는 회원 로그인 없이 기기 기반 사용자 식별을 사용한
       {
         "region_id": 1,
         "region_name": "홍대",
-        "selected_at": "2026-10-06T01:00:00"
+        "selected_at": "2026-10-06T01:00:00",
+        "region_image_url": null
       }
     ]
   }
 }
 ```
+
+**Note**
+
+- `recent_regions[].region_image_url`은 해당 지역의 대표 이미지 URL이다. 미등록이면 필드를 유지한 채 `null`을 반환한다.
 
 ---
 

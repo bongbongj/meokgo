@@ -34,14 +34,15 @@ public interface ExplorationRecordRepository extends JpaRepository<ExplorationRe
     interface PopularRegion {
         Long getRegionId();
         String getRegionName();
+        String getRegionImageUrl();
         long getExplorationCount();
     }
 
     @Query("""
-            select r.region.id as regionId, r.region.name as regionName,
+            select r.region.id as regionId, r.region.name as regionName, r.region.imageUrl as regionImageUrl,
                 count(distinct r.room.id) as explorationCount
             from ExplorationRecord r where r.region.active = true
-            group by r.region.id, r.region.name
+            group by r.region.id, r.region.name, r.region.imageUrl
             order by count(distinct r.room.id) desc, r.region.id asc
             """)
     List<PopularRegion> findPopularRegions(Pageable pageable);

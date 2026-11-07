@@ -3,6 +3,7 @@ package com.meokgo.server.api.experience;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -62,6 +63,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.imageio.ImageIO;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -181,9 +183,13 @@ class ExperienceFlowTest {
         mvc.perform(get("/api/v1/home")).andExpect(status().isBadRequest());
     }
 
-    @Test
-    void 통계는_개인이력으로_집계하고_인기지역은_참여자수와_무관하게_탐험방을_센다() throws Exception {
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(strings = "https://images.example.com/regions/sample.webp")
+    void 홈은_지역대표이미지를_반환하고_통계와_인기지역_집계를_유지한다(String imageUrl) throws Exception {
         Fixture f = fixture();
+        f.region().updateImageUrl(imageUrl);
+        entityManager.flush();
         Quest quest = quests.save(new Quest("발견", "설명", QuestType.COMMON, ScheduleType.MEAL));
         history.save(new UserQuestHistory(f.user(), quest, f.room(), LocalDateTime.now()));
         DeviceUser other = users.save(DeviceUser.create(UUID.randomUUID().toString(), "친구"));
@@ -195,7 +201,12 @@ class ExperienceFlowTest {
                 .andExpect(jsonPath("$.data.retention_stages[0].achieved", is(true)));
         mvc.perform(get("/api/v1/home").header("X-Device-Key", f.key()))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.recent_records", hasSize(1)))
-                .andExpect(jsonPath("$.data.popular_regions[0].exploration_count", is(1)))
+                .andExpect(jsonPath("$.data.recent_records[0].thumbnail_url").hasJsonPath())
+                .andExpect(jsonPath("$.data.recent_records[0].thumbnail_url", imageUrl == null ? nullValue() : is(imageUrl)))
+                .andExpect(jsonPath("$.data.popular_regions[?(@.region_id == " + f.region().getId()
+                        + ")].region_image_url", contains(imageUrl == null ? nullValue() : is(imageUrl))))
+                .andExpect(jsonPath("$.data.popular_regions[?(@.region_id == " + f.region().getId()
+                        + ")].exploration_count", contains(1)))
                 .andExpect(jsonPath("$.data.retention.current_stage_name", is("첫 발견")));
     }
 

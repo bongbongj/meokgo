@@ -64,11 +64,12 @@ public class RegionService {
     }
 
     private RegionItemResponse toRegionItemResponse(Region region) {
-        return new RegionItemResponse(region.getId(), region.getName(), region.getParentRegionId());
+        return new RegionItemResponse(region.getId(), region.getName(), region.getParentRegionId(), region.getImageUrl());
     }
 
     private RecentRegionItemResponse toRecentRegionItemResponse(UserRecentRegion recentRegion) {
         Region region = recentRegion.getRegion();
-        return new RecentRegionItemResponse(region.getId(), region.getName(), recentRegion.getSelectedAt());
+        return new RecentRegionItemResponse(region.getId(), region.getName(), recentRegion.getSelectedAt(),
+                region.getImageUrl());
     }
 }

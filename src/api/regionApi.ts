@@ -4,21 +4,20 @@ import { mockResponse, toResponse } from "./apiError";
 import { api } from "./client";
 import { USE_MOCK } from "./mock";
 
-export type RegionLevel = "CITY" | "DISTRICT";
-
+// 상위 지역(시·도)은 parent_region_id가 null, 하위 지역은 상위 지역의 region_id
+// (현재 BE 지역 데이터는 상위 지역 없이 모두 parent_region_id가 null)
 export interface Region {
   region_id: number;
   region_name: string;
-  region_level: RegionLevel;
   parent_region_id: number | null;
-  region_image_url: string | null; // 지역 대표 이미지 (BE 추가 요청 중, 없으면 null → 회색 기본 이미지)
+  region_image_url: string | null; // 지역 대표 이미지 (없으면 null → 회색 기본 이미지)
 }
 
 export interface RecentRegion {
   region_id: number;
   region_name: string;
   selected_at: string;
-  region_image_url: string | null; // 지역 대표 이미지 (BE 추가 요청 중)
+  region_image_url: string | null; // 지역 대표 이미지
 }
 
 // 시·도 카테고리 + 세부 지역 더미 데이터
@@ -52,14 +51,12 @@ const MOCK_REGIONS: Region[] = CITIES.flatMap(([cityId, cityName, districts]) =>
   {
     region_id: cityId,
     region_name: cityName,
-    region_level: "CITY" as const,
     parent_region_id: null,
     region_image_url: null,
   },
   ...districts.map((name, idx) => ({
     region_id: cityId * 100 + idx + 1,
     region_name: name,
-    region_level: "DISTRICT" as const,
     parent_region_id: cityId,
     region_image_url: null,
   })),
@@ -73,8 +70,9 @@ const MOCK_RECENT_REGIONS: RecentRegion[] = [
 ];
 
 /**
- * 지역 검색 및 분류 조회 API (더미)
+ * 지역 검색 및 분류 조회 API
  * GET /api/v1/regions?keyword=&parent_region_id=
+ * - 조건이 없으면 전체 지역, keyword가 있으면 이름 검색, parent_region_id가 있으면 하위 지역
  */
 export const fetchRegions = async (params: {
   keyword?: string;
@@ -94,21 +92,21 @@ export const fetchRegions = async (params: {
 
   if (keyword) {
     regions = MOCK_REGIONS.filter(
-      (r) => r.region_level === "DISTRICT" && r.region_name.includes(keyword),
+      (r) => r.parent_region_id !== null && r.region_name.includes(keyword),
     );
   } else if (params.parent_region_id) {
     regions = MOCK_REGIONS.filter(
       (r) => r.parent_region_id === params.parent_region_id,
     );
   } else {
-    regions = MOCK_REGIONS.filter((r) => r.region_level === "CITY");
+    regions = MOCK_REGIONS;
   }
 
   return mockResponse({ success: true, data: { regions } }, 150);
 };
 
 /**
- * 최근 선택 지역 조회 API (더미)
+ * 최근 선택 지역 조회 API
  * GET /api/v1/users/me/recent-regions
  */
 export const fetchRecentRegions = async (): Promise<{

@@ -27,7 +27,8 @@ export interface ExplorationProgress {
   completed_quest_count: number;
   progress_rate: number;
   quests: ExplorationQuest[];
-  // API명세서에 없음 — 18 탐험 종료에서 참가자가 기록으로 이동할 때 필요 (BE 협의, README 컨펌 필요 사항)
+  // API명세서에 없음 — 더미에서만 채운다. 실서버는 18 탐험 종료에서 내 기록 목록으로 찾는다
+  // (BE에 추가 요청: README 컨펌 필요 사항 C-12)
   record_id?: number | null;
 }
 
@@ -47,10 +48,7 @@ export interface ExplorationFinishResult {
   story_optional: boolean;
 }
 
-// BE 미구현 API — 구현되면 false로 바꾸고 USE_MOCK.exploration을 따르게 한다
-const EXPLORATION_API_PENDING = true;
-
-const isMocked = () => EXPLORATION_API_PENDING || USE_MOCK.exploration;
+const isMocked = () => USE_MOCK.exploration;
 
 // ---------------------------------------------------------------------------
 // 더미 데이터 — 방별 완료 상태를 화면 사이에서 공유 (새로고침하면 초기화)
@@ -143,9 +141,9 @@ export const updateQuestProgress = async (
   completed: boolean,
 ): Promise<QuestProgressResult> => {
   if (isMocked()) {
-    // 종료된 탐험 전용 오류 코드가 API명세서에 없어 ROOM-002(이미 진행된 방)로 대신한다
+    // BE와 같이 진행 중이 아닌 방(종료 등)은 ROOM-003
     if (getMockRoomStatus(roomId) === "FINISHED") {
-      throw new ApiError("ROOM-002", "이미 종료된 탐험이에요.", 409);
+      throw new ApiError("ROOM-003", "현재 탐험방 상태에서는 요청을 처리할 수 없습니다.", 409);
     }
     const map = completedOf(roomId);
     const completedAt = completed ? new Date().toISOString() : null;

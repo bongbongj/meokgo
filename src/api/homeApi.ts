@@ -1,12 +1,9 @@
 // src/api/homeApi.ts
 
-import { toResponse } from "./apiError";
 import { api } from "./client";
 import { USE_MOCK } from "./mock";
+import { fetchVoteStatus } from "./voteApi";
 import type { RoomStatus } from "./types";
-
-// BE 미구현 API — GET /home (구현되면 false로 바꿔 USE_MOCK.home 설정을 따르게 한다)
-const HOME_API_PENDING = true;
 
 export type HomeMockType = "EMPTY" | "ACTIVE" | "VOTING";
 
@@ -42,7 +39,7 @@ export interface HomeData {
 }
 
 // 홈 상단 테스트 전환 탭 노출 여부 (더미일 때만)
-export const IS_HOME_MOCK = HOME_API_PENDING || USE_MOCK.home;
+export const IS_HOME_MOCK = USE_MOCK.home;
 
 export interface HomeResponse {
   success: boolean;
@@ -124,14 +121,32 @@ const MOCK_DATA_SETS: Record<HomeMockType, HomeData> = {
 };
 
 /**
+ * 02-2 투표 대기 카드의 투표 완료 인원
+ * - BE 홈 응답에 voted_participant_count가 없어 투표 현황 API로 채운다
+ * - 조회에 실패하면 0명으로 표시 (홈 전체는 그대로 보여준다)
+ */
+const withVotedCount = async (data: HomeData): Promise<HomeData> => {
+  const room = data.active_room;
+  if (!room || room.room_status !== "VOTING" || room.voted_participant_count != null) {
+    return data;
+  }
+  const voted = await fetchVoteStatus(room.room_id).then(
+    (status) => status.voted_participant_count,
+    () => 0,
+  );
+  return { ...data, active_room: { ...room, voted_participant_count: voted } };
+};
+
+/**
  * 홈 화면 데이터 조회 API
- * GET /api/v1/home (BE 미구현 동안 더미, type은 더미 전용)
+ * GET /api/v1/home (type은 더미 전용)
  */
 export const fetchHomeData = async (
   type: HomeMockType = "VOTING",
 ): Promise<HomeResponse> => {
-  if (!HOME_API_PENDING && !USE_MOCK.home) {
-    return toResponse(api.get<HomeData>("/home"));
+  if (!USE_MOCK.home) {
+    const data = await api.get<HomeData>("/home");
+    return { success: true, data: await withVotedCount(data) };
   }
 
   return new Promise((resolve) => {

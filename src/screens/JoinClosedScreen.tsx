@@ -9,19 +9,21 @@ import { COLORS } from "../constants/colors";
 import { scale, verticalScale, moderateScale } from "../utils/responsive";
 import { NavHeader } from "../components/ScreenHeader";
 import type { UnjoinableReason } from "../api/inviteApi";
+import { MAX_PARTICIPANT_COUNT } from "../api/roomApi";
 
+// 06-1 시안 문구 — 화면정의: 탐험이 이미 종료된 경우에도 동일한 안내를 사용
+const ALREADY_STARTED_MESSAGE = {
+  title: "이미 시작된 탐험이에요",
+  body: "투표가 시작되어 더 이상 참여할 수 없어요\n다음 탐험에 함께해주세요",
+};
+
+// 정원 초과·만료·잘못된 링크는 시안에 없어 같은 패턴으로 문구만 바꿔 안내
 const MESSAGES: Record<UnjoinableReason, { title: string; body: string }> = {
-  ALREADY_STARTED: {
-    title: "이미 시작된 탐험이에요",
-    body: "투표가 시작되어 더 이상 참여할 수 없어요\n다음 탐험에 함께해주세요",
-  },
-  FINISHED: {
-    title: "이미 종료된 탐험이에요",
-    body: "탐험이 끝나 더 이상 참여할 수 없어요\n다음 탐험에 함께해주세요",
-  },
+  ALREADY_STARTED: ALREADY_STARTED_MESSAGE,
+  FINISHED: ALREADY_STARTED_MESSAGE,
   FULL: {
     title: "참여 인원이 가득 찼어요",
-    body: "최대 6명까지 참여할 수 있어요\n다음 탐험에 함께해주세요",
+    body: `최대 ${MAX_PARTICIPANT_COUNT}명까지 참여할 수 있어요\n다음 탐험에 함께해주세요`,
   },
   EXPIRED: {
     title: "만료된 초대 링크예요",

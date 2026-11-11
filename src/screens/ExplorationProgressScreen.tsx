@@ -43,7 +43,7 @@ const getErrorMessage = (error: unknown): string => {
   switch (error.code) {
     case "ROOM-004":
       return "방장만 탐험을 종료할 수 있어요.";
-    case "ROOM-002":
+    case "ROOM-003": // 진행 중이 아닌 방 (방장이 이미 종료 등)
       return "이미 종료된 탐험이에요.";
     default:
       return error.message;
@@ -136,6 +136,8 @@ export default function ExplorationProgressScreen({ roomId }: ExplorationProgres
     } catch (e) {
       setProgress((prev) => prev && applyToggle(prev, finalQuestId, !completed));
       setError(getErrorMessage(e));
+      // 방장이 이미 종료했으면 다음 폴링을 기다리지 않고 바로 18 탐험 종료로 이동
+      if (isApiError(e) && e.code === "ROOM-003") refresh();
     } finally {
       pendingToggles.current -= 1;
     }

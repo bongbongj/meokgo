@@ -31,10 +31,7 @@ export const STORY_MAX_PHOTOS = 4;
 export const STORY_PHOTO_MAX_BYTES = 10 * 1024 * 1024;
 export const STORY_PHOTO_TYPES = ["image/jpeg", "image/png"];
 
-// BE 미구현 API — 구현되면 false로 바꾸고 USE_MOCK.story를 따르게 한다
-const STORY_API_PENDING = true;
-
-const isMocked = () => STORY_API_PENDING || USE_MOCK.story;
+const isMocked = () => USE_MOCK.story;
 
 // 디자인 시안: 01 MOOD / 02 콜라주
 const MOCK_TEMPLATES: StoryTemplate[] = [

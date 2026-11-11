@@ -22,6 +22,7 @@ import RegionSelectSheet, {
   SelectedRegion,
 } from "../components/RegionSelectSheet";
 import { fetchRecentRegions, RecentRegion } from "../api/regionApi";
+import { isApiError } from "../api/client";
 import { createRoom, DrinkingOption, ScheduleType } from "../api/roomApi";
 import { useToast } from "../components/Toast";
 import {
@@ -86,8 +87,12 @@ export default function ConditionScreen() {
           inviteUrl: res.data.invite_url,
         },
       });
-    } catch {
-      showToast("탐험방을 만들지 못했어요. 다시 시도해주세요");
+    } catch (error) {
+      showToast(
+        isApiError(error) && error.code === "QUEST-003"
+          ? "조건에 맞는 퀘스트가 부족해요. 조건을 바꿔주세요"
+          : "탐험방을 만들지 못했어요. 다시 시도해주세요",
+      );
     } finally {
       setIsLoading(false);
     }

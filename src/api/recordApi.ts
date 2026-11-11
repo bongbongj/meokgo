@@ -50,10 +50,7 @@ export interface RecordDetail {
   photos: RecordPhoto[];
 }
 
-// BE 미구현 API — 구현되면 false로 바꾸고 USE_MOCK.record를 따르게 한다
-const RECORD_API_PENDING = true;
-
-const isMocked = () => RECORD_API_PENDING || USE_MOCK.record;
+const isMocked = () => USE_MOCK.record;
 
 // ---------------------------------------------------------------------------
 // 더미 데이터 (디자인 시안 기준: 망원 / 성수 / 행궁 / 문래, 15는 을지로)

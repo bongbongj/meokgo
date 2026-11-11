@@ -2,11 +2,12 @@
 // 11 내 기록 — 탐험 기록 카드 (2열, 대표 사진 + 지역 칩 + 지역 탐험 + 날짜 · 퀘스트 수)
 
 import React from "react";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { COLORS } from "../../constants/colors";
 import { moderateScale, scale, verticalScale } from "../../utils/responsive";
 import { formatDotDate } from "../../utils/date";
-import { getPhotoSource, RecordSummary } from "../../api/recordApi";
+import { RecordSummary } from "../../api/recordApi";
+import PhotoImage from "../common/PhotoImage";
 
 interface RecordCardProps {
   record: RecordSummary;
@@ -23,7 +24,7 @@ export default function RecordCard({ record, onPress }: RecordCardProps) {
       accessibilityLabel={`${record.region_name} 탐험 기록`}
     >
       {record.thumbnail_url ? (
-        <Image source={getPhotoSource(record.thumbnail_url)} style={styles.image} />
+        <PhotoImage url={record.thumbnail_url} style={styles.image} />
       ) : (
         <View style={[styles.image, styles.imageEmpty]} />
       )}

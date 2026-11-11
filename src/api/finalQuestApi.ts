@@ -41,12 +41,7 @@ export interface FinalQuestConfirmResult {
   final_quests: FinalQuest[];
 }
 
-// BE 미구현 API — 구현되면 false로 바꾸고 USE_MOCK.finalQuest를 따르게 한다
-const FINAL_QUEST_API_PENDING = true; // preview, tie-break, 확정
-// API명세서에 없는 API — 확정된 퀘스트 조회 (참가자 / 재진입한 방장용, BE와 협의 필요)
-const FINAL_QUEST_LIST_API_PENDING = true;
-
-const isMocked = () => FINAL_QUEST_API_PENDING || USE_MOCK.finalQuest;
+const isMocked = () => USE_MOCK.finalQuest;
 
 // ---------------------------------------------------------------------------
 // 더미 데이터 (디자인 시안 기준: 3표 / 2표 / 2표)
@@ -154,15 +149,20 @@ export const confirmFinalQuests = async (
 };
 
 /**
- * 확정된 퀘스트 조회 — API명세서에 없음 (참가자 / 재진입한 방장이 확정 결과를 보기 위해 필요)
- * TODO: BE와 엔드포인트 협의 후 교체 (예: GET /rooms/{room_id}/final-quests)
+ * 확정된 퀘스트 조회 (참가자 / 재진입한 방장)
+ * - 전용 API가 없어 미리보기를 사용한다. BE는 확정 후 미리보기에 확정된 퀘스트를 순위대로 돌려준다.
+ * - 반드시 방 상태가 QUEST_CONFIRMED 이후일 때만 호출 (확정 전에는 예상 결과가 온다)
+ * - 미리보기에는 확정 퀘스트 번호와 선정 사유가 없어 후보 번호로 대신하고 사유는 득표 순위로 둔다
+ *   (화면에서는 목록 key로만 쓰며, 진행 화면은 진행 조회의 final_quest_id를 쓴다)
  */
 export const fetchFinalQuests = async (roomId: number): Promise<FinalQuest[]> => {
-  if (FINAL_QUEST_LIST_API_PENDING || isMocked()) {
-    return mockResolve(mockFinalQuests(roomId));
-  }
-  const data = await api.get<{ final_quests: FinalQuest[] }>(
-    `/rooms/${roomId}/final-quests`,
-  );
-  return data.final_quests;
+  if (isMocked()) return mockResolve(mockFinalQuests(roomId));
+  const preview = await fetchFinalQuestPreview(roomId);
+  return (preview.final_quest_candidates ?? []).map((candidate, index) => ({
+    final_quest_id: candidate.candidate_id,
+    rank_no: candidate.rank_no ?? index + 1,
+    quest_title: candidate.quest_title,
+    vote_count: candidate.vote_count,
+    selection_reason: "VOTE_RANK",
+  }));
 };

@@ -1,6 +1,6 @@
 // src/screens/WaitingRoomScreen.tsx
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -22,9 +22,11 @@ import { useToast } from "../components/Toast";
 import usePolling from "../hooks/usePolling";
 import SplashScreen from "./SplashScreen";
 import {
+  createQuestCandidates,
   fetchRoomDetail,
   fetchWaitingStatus,
   MAX_PARTICIPANT_COUNT,
+  MIN_PARTICIPANT_COUNT,
   RoomDetail,
   startVote,
   takeOverHost,
@@ -32,6 +34,7 @@ import {
   WaitingStatus,
 } from "../api/roomApi";
 import { ApiError } from "../api/apiError";
+import { isApiError } from "../api/client";
 import { formatConditionSummary } from "../constants/conditionLabels";
 
 const POLLING_INTERVAL = 5000; // 5초 간격 폴링
@@ -99,8 +102,25 @@ export default function WaitingRoomScreen() {
     if (isVoteStarted) router.replace(`/rooms/${roomId}/vote`);
   }, [isVoteStarted, roomId]);
 
+  // 방장: 후보 퀘스트가 아직 없으면 만든다 (방 생성 때 실패했거나 방장 권한을 이어받은 경우)
+  // 후보가 있어야 서버가 can_start_vote를 true로 내려준다
+  const needsCandidates =
+    !!status?.is_host && status.room_status === "WAITING" && !status.can_start_vote;
+  const candidatesRequested = useRef(false);
+  useEffect(() => {
+    if (!needsCandidates || candidatesRequested.current) return;
+    candidatesRequested.current = true;
+    createQuestCandidates(Number(roomId)).then(refresh, (error) => {
+      if (isApiError(error) && error.code === "QUEST-003") {
+        showToast("조건에 맞는 퀘스트가 부족해요. 조건을 바꿔 새로 만들어주세요");
+      } else {
+        candidatesRequested.current = false; // 다음 폴링 때 다시 시도
+      }
+    });
+  }, [needsCandidates, roomId, refresh, showToast]);
+
   const handleStartVote = async () => {
-    if (!status?.can_start_vote || isLoading) return;
+    if (!status || !canStartVote(status) || isLoading) return;
     setIsLoading(true);
     try {
       await startVote(status.room_id);
@@ -159,6 +179,10 @@ export default function WaitingRoomScreen() {
   );
 }
 
+// 서버는 후보 퀘스트 준비 여부만 확인하므로 인원(방장 포함 2명 이상)은 여기서 확인한다
+const canStartVote = (status: WaitingStatus) =>
+  status.can_start_vote && status.participants.length >= MIN_PARTICIPANT_COUNT;
+
 /**
  * 07. 참여 대기 기본 화면 (방장/참가자 공통)
  */
@@ -173,8 +197,11 @@ function WaitingView({
   showToast: (msg: string) => void;
   onStartVote: () => void;
 }) {
-  const canInvite = status.participants.length < MAX_PARTICIPANT_COUNT;
+  // 초대 링크는 방을 만든 기기에만 있다 (방장 권한을 이어받은 기기에는 없음)
+  const hasInviteUrl = status.invite_url.length > 0;
+  const canInvite = hasInviteUrl && status.participants.length < MAX_PARTICIPANT_COUNT;
   const isVoteStarted = status.room_status !== "WAITING";
+  const canStart = canStartVote(status);
 
   return (
     <>
@@ -234,12 +261,14 @@ function WaitingView({
           )}
         </ScrollView>
 
-        <View style={styles.inviteSection}>
-          <InviteLinkSection
-            inviteUrl={status.invite_url}
-            showToast={showToast}
-          />
-        </View>
+        {hasInviteUrl && (
+          <View style={styles.inviteSection}>
+            <InviteLinkSection
+              inviteUrl={status.invite_url}
+              showToast={showToast}
+            />
+          </View>
+        )}
 
         {/* 퀘스트 선택 방식 안내 */}
         <View style={styles.infoCard}>
@@ -255,22 +284,22 @@ function WaitingView({
         <TouchableOpacity
           style={[
             styles.ctaButton,
-            (!status.can_start_vote || isLoading) && styles.ctaButtonDisabled,
+            (!canStart || isLoading) && styles.ctaButtonDisabled,
           ]}
-          disabled={!status.can_start_vote || isLoading}
+          disabled={!canStart || isLoading}
           activeOpacity={0.8}
           onPress={onStartVote}
         >
           <Text
             style={[
               styles.ctaText,
-              (!status.can_start_vote || isLoading) && styles.ctaTextDisabled,
+              (!canStart || isLoading) && styles.ctaTextDisabled,
             ]}
           >
             퀘스트 선택 시작
           </Text>
         </TouchableOpacity>
-        {!status.can_start_vote && !isVoteStarted && (
+        {!canStart && !isVoteStarted && (
           <Text style={styles.footerText}>
             방장 포함 2명 이상 모이면 시작할 수 있어요
           </Text>

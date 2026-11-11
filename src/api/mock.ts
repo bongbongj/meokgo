@@ -1,7 +1,7 @@
 // src/api/mock.ts
 // 더미 / 실서버 전환
 // - 전체 기본값: EXPO_PUBLIC_USE_MOCK ("false"면 실서버, 그 외에는 더미)
-// - BE 구현이 끝난 API는 아래 표에서 도메인별로 false로 바꿔 실서버에 연결한다.
+// - 특정 도메인만 실서버에 연결하려면 아래 표에서 도메인별로 false로 바꾼다.
 
 const MOCK_DEFAULT = process.env.EXPO_PUBLIC_USE_MOCK !== "false";
 

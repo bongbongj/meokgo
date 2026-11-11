@@ -4,7 +4,9 @@
 import { api, isApiError } from "./client";
 import { mockResolve, USE_MOCK } from "./mock";
 import { getMockRoomStatus, isMockHost, setMockRoomStatus } from "./mockRooms";
-import type { ParticipantRole, QuestType, RoomStatus } from "./types";
+import { fetchRoomDetail as fetchRoomDetailFromServer } from "./roomApi";
+import type { RoomDetail } from "./roomApi";
+import type { QuestType, RoomStatus } from "./types";
 
 export interface QuestCandidate {
   candidate_id: number;
@@ -74,10 +76,6 @@ export interface RoomState {
   room_status: RoomStatus;
   is_host: boolean;
 }
-
-// BE 미구현 API — 구현되면 false로 바꾸고 USE_MOCK.vote를 따르게 한다
-const VOTE_STATUS_API_PENDING = true; // GET /votes/status
-const VOTE_CLOSE_API_PENDING = true; // GET /votes/close-preview, POST /votes/close
 
 // ---------------------------------------------------------------------------
 // 더미 데이터 (API명세서 응답 구조 그대로)
@@ -193,27 +191,27 @@ export const submitMyVote = async (
     : api.post<MyVoteResult>(path, body);
 };
 
-/** 투표 현황 조회 (BE 미구현 — 현재 더미) */
+/** 투표 현황 조회 */
 export const fetchVoteStatus = async (roomId: number): Promise<VoteStatus> => {
-  if (VOTE_STATUS_API_PENDING || USE_MOCK.vote) {
+  if (USE_MOCK.vote) {
     return mockResolve(mockVoteStatus());
   }
   return api.get<VoteStatus>(`/rooms/${roomId}/votes/status`);
 };
 
-/** 투표 마감 확인 정보 조회 (BE 미구현 — 현재 더미) */
+/** 투표 마감 확인 정보 조회 */
 export const fetchVoteClosePreview = async (
   roomId: number,
 ): Promise<VoteClosePreview> => {
-  if (VOTE_CLOSE_API_PENDING || USE_MOCK.vote) {
+  if (USE_MOCK.vote) {
     return mockResolve(mockClosePreview());
   }
   return api.get<VoteClosePreview>(`/rooms/${roomId}/votes/close-preview`);
 };
 
-/** 투표 마감 — 방장이 확인창을 승인한 뒤 호출 (BE 미구현 — 현재 더미) */
+/** 투표 마감 — 방장이 확인창을 승인한 뒤 호출 */
 export const closeVote = async (roomId: number): Promise<VoteCloseResult> => {
-  if (VOTE_CLOSE_API_PENDING || USE_MOCK.vote) {
+  if (USE_MOCK.vote) {
     setMockRoomStatus(roomId, "VOTE_CLOSED");
     return mockResolve({
       room_id: roomId,
@@ -232,7 +230,6 @@ export const closeVote = async (roomId: number): Promise<VoteCloseResult> => {
  * - 방장이면 09-1 투표 현황, 아니면 10 투표 대기를 보여준다
  * - 투표 마감 시 퀘스트 확정 화면으로 자동 전환하는 데 사용
  * - 더미: 방 번호 규칙은 mockRooms.ts 참고
- * TODO: FE1의 roomApi.ts가 생기면 그쪽 함수로 교체
  */
 export const fetchRoomState = async (roomId: number): Promise<RoomState> => {
   if (USE_MOCK.room) {
@@ -246,36 +243,31 @@ export const fetchRoomState = async (roomId: number): Promise<RoomState> => {
   return { room_status: data.room_status, is_host: data.is_host };
 };
 
-export interface RoomDetail {
-  room_id: number;
-  room_status: RoomStatus;
-  region_name: string;
-  participants: {
-    participant_id: number;
-    nickname: string;
-    role: ParticipantRole;
-  }[];
-}
-
-// BE 미구현 API — GET /rooms/{room_id}
-const ROOM_DETAIL_API_PENDING = true;
+export type { RoomDetail };
 
 /**
  * 탐험방 상세 조회 (10-1 퀘스트 확정의 탐험 요약 카드)
- * TODO: FE1의 roomApi.ts가 생기면 그쪽 함수로 교체
+ * - 실서버: roomApi.ts의 조회를 그대로 사용
+ * - 더미: 방 번호 규칙(mockRooms.ts)으로 만든 방은 roomApi 더미 저장소에 없으므로 여기서 만든다
  */
 export const fetchRoomDetail = async (roomId: number): Promise<RoomDetail> => {
-  if (ROOM_DETAIL_API_PENDING || USE_MOCK.room) {
+  if (USE_MOCK.room) {
     return mockResolve<RoomDetail>({
       room_id: roomId,
       room_status: getMockRoomStatus(roomId),
       region_name: "행궁동",
+      condition: {
+        schedule_type: "MEAL",
+        time_slot: null,
+        drinking_option: "ANY",
+        avoid_foods: null,
+      },
       participants: [
-        { participant_id: 1, nickname: "민교", role: "HOST" },
-        { participant_id: 2, nickname: "서연", role: "MEMBER" },
-        { participant_id: 3, nickname: "현진", role: "MEMBER" },
+        { participant_id: 1, nickname: "민교", role: "HOST", connected: true, status: "EXPLORING" },
+        { participant_id: 2, nickname: "서연", role: "MEMBER", connected: true, status: "EXPLORING" },
+        { participant_id: 3, nickname: "현진", role: "MEMBER", connected: true, status: "EXPLORING" },
       ],
     });
   }
-  return api.get<RoomDetail>(`/rooms/${roomId}`);
+  return (await fetchRoomDetailFromServer(roomId)).data;
 };

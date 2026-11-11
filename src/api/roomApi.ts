@@ -1,7 +1,7 @@
 // src/api/roomApi.ts
 
 import { mockError, mockResponse, toResponse } from "./apiError";
-import { api } from "./client";
+import { api, isApiError } from "./client";
 import { USE_MOCK } from "./mock";
 import { setMockHost, setMockRoomStatus } from "./mockRooms";
 import type {
@@ -11,21 +11,16 @@ import type {
   ScheduleType,
   TimeSlot,
 } from "./types";
+import { getInviteUrl, saveInviteUrl } from "../utils/roomStorage";
 import { getStoredNickname } from "../utils/userStorage";
 
 // Enum은 types.ts 기준 (화면에서는 기존처럼 roomApi에서 import 가능)
 export type { DrinkingOption, ParticipantRole, RoomStatus, ScheduleType, TimeSlot };
 
-// BE 미구현 API (구현되면 false로 바꿔 USE_MOCK.room 설정을 따르게 한다)
-const ROOM_DETAIL_API_PENDING = true; // GET /rooms/{room_id}
-const HOST_TAKEOVER_API_PENDING = true; // POST /rooms/{room_id}/host/takeover
-
 export interface CreateRoomRequest {
   region_id: number;
   schedule_type: ScheduleType;
   time_slot?: TimeSlot;
-  budget_min?: number;
-  budget_max?: number;
   drinking_option: DrinkingOption;
   avoid_foods?: string;
 }
@@ -60,16 +55,14 @@ export interface WaitingStatus {
   host_takeover_remaining_seconds: number;
   can_take_over_host: boolean;
   can_start_vote: boolean;
-  // 명세에 없는 필드: 대기 화면에 초대 링크를 보여주려면 BE에 추가 요청 필요
-  // (실서버 응답에 없으면 빈 문자열)
+  // 명세에 없는 필드 (BE 추가 요청 필요) — 실서버에서는 방 생성 때 기기에 저장한 링크로 채운다
+  // (다른 기기에서 만든 방이면 빈 문자열)
   invite_url: string;
 }
 
 export interface RoomCondition {
   schedule_type: ScheduleType;
   time_slot: TimeSlot | null;
-  budget_min: number | null;
-  budget_max: number | null;
   drinking_option: DrinkingOption;
   avoid_foods: string | null;
 }
@@ -82,7 +75,8 @@ export interface RoomDetail {
   participants: (WaitingParticipant & { status: string })[];
 }
 
-export const MAX_PARTICIPANT_COUNT = 6;
+// BE 탐험방 최대 인원과 같게 유지 (API 명세서: MVP 2~4명)
+export const MAX_PARTICIPANT_COUNT = 4;
 export const MIN_PARTICIPANT_COUNT = 2;
 
 // ---- 더미 저장소 (서버 연결 시 제거) ----
@@ -104,8 +98,6 @@ interface MockRoom {
 const DEFAULT_CONDITION: RoomCondition = {
   schedule_type: "MEAL",
   time_slot: null,
-  budget_min: null,
-  budget_max: null,
   drinking_option: "ANY",
   avoid_foods: "매운 음식",
 };
@@ -178,7 +170,7 @@ export const mockRooms = new Map<number, MockRoom>([
       invite_token: "FULL",
       host_nickname: "민교",
       created_at: "2026-09-30T10:00:00",
-      participants: ["민교", "서연", "현진", "지우", "하늘", "도윤"].map((name, idx) =>
+      participants: ["민교", "서연", "현진", "지우"].map((name, idx) =>
         participant(idx + 1, name, idx === 0 ? "HOST" : "MEMBER"),
       ),
       my_participant_id: null,
@@ -224,15 +216,35 @@ const getRoomOrError = (roomId: number) => {
 };
 
 /**
- * 탐험방 생성 API (더미)
+ * 후보 퀘스트 생성 API (방장)
+ * POST /api/v1/rooms/{room_id}/quest-candidates
+ * - 후보가 3개 이상 있어야 투표를 시작할 수 있다. 이미 있으면 기존 후보를 그대로 돌려준다.
+ * - 오류: QUEST-003(조건에 맞는 퀘스트 부족)
+ */
+export const createQuestCandidates = async (roomId: number): Promise<void> => {
+  if (USE_MOCK.questCandidate) return;
+  await api.post(`/rooms/${roomId}/quest-candidates`);
+};
+
+/**
+ * 탐험방 생성 API
  * POST /api/v1/rooms
+ * - 생성 직후 후보 퀘스트까지 만든다. 조건에 맞는 퀘스트가 부족하면 QUEST-003을 던진다.
  */
 export const createRoom = async (
   req: CreateRoomRequest & { region_name: string },
 ): Promise<CreateRoomResponse> => {
   if (!USE_MOCK.room) {
     const { region_name: _regionName, ...body } = req;
-    return toResponse(api.post<CreateRoomResponse["data"]>("/rooms", body));
+    const data = await api.post<CreateRoomResponse["data"]>("/rooms", body);
+    await saveInviteUrl(data.room_id, data.invite_url);
+    try {
+      await createQuestCandidates(data.room_id);
+    } catch (error) {
+      // 그 외 실패는 07 참여 대기에서 다시 시도한다
+      if (isApiError(error) && error.code === "QUEST-003") throw error;
+    }
+    return { success: true, data };
   }
 
   const roomId = nextRoomId++;
@@ -253,8 +265,6 @@ export const createRoom = async (
     condition: {
       schedule_type: req.schedule_type,
       time_slot: req.time_slot ?? null,
-      budget_min: req.budget_min ?? null,
-      budget_max: req.budget_max ?? null,
       drinking_option: req.drinking_option,
       avoid_foods: req.avoid_foods ?? null,
     },
@@ -275,7 +285,7 @@ export const createRoom = async (
 };
 
 /**
- * 참여 대기 상태 조회 API (더미)
+ * 참여 대기 상태 조회 API
  * GET /api/v1/rooms/{room_id}/waiting-status
  */
 export const fetchWaitingStatus = async (
@@ -283,7 +293,8 @@ export const fetchWaitingStatus = async (
 ): Promise<{ success: boolean; data: WaitingStatus }> => {
   if (!USE_MOCK.room) {
     const data = await api.get<WaitingStatus>(`/rooms/${roomId}/waiting-status`);
-    return { success: true, data: { ...data, invite_url: data.invite_url ?? "" } };
+    const inviteUrl = data.invite_url ?? (await getInviteUrl(roomId)) ?? "";
+    return { success: true, data: { ...data, invite_url: inviteUrl } };
   }
 
   const room = getRoomOrError(roomId);
@@ -314,13 +325,13 @@ export const fetchWaitingStatus = async (
 };
 
 /**
- * 탐험방 상세 조회 API (더미)
+ * 탐험방 상세 조회 API
  * GET /api/v1/rooms/{room_id}
  */
 export const fetchRoomDetail = async (
   roomId: number,
 ): Promise<{ success: boolean; data: RoomDetail }> => {
-  if (!ROOM_DETAIL_API_PENDING && !USE_MOCK.room) {
+  if (!USE_MOCK.room) {
     return toResponse(api.get<RoomDetail>(`/rooms/${roomId}`));
   }
 
@@ -340,7 +351,7 @@ export const fetchRoomDetail = async (
 };
 
 /**
- * 퀘스트 투표 시작 API (더미)
+ * 퀘스트 투표 시작 API
  * POST /api/v1/rooms/{room_id}/vote/start
  */
 export const startVote = async (
@@ -371,7 +382,7 @@ export const startVote = async (
 };
 
 /**
- * 방장 권한 이어받기 API (더미)
+ * 방장 권한 이어받기 API
  * POST /api/v1/rooms/{room_id}/host/takeover
  */
 export const takeOverHost = async (
@@ -380,7 +391,7 @@ export const takeOverHost = async (
   success: boolean;
   data: { room_id: number; host_participant_id: number };
 }> => {
-  if (!HOST_TAKEOVER_API_PENDING && !USE_MOCK.room) {
+  if (!USE_MOCK.room) {
     return toResponse(
       api.post<{ room_id: number; host_participant_id: number }>(
         `/rooms/${roomId}/host/takeover`,

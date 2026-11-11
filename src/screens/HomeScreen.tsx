@@ -22,26 +22,14 @@ import {
   IS_HOME_MOCK,
 } from "../api/homeApi";
 import { formatCompactDotDate } from "../utils/date";
+import { activeRoomHref } from "../utils/roomNavigation";
 import BottomTabBar from "../components/BottomTabBar";
 import SplashScreen from "./SplashScreen";
 
-// 이어하기 / 투표 현황 보기: 방 상태별 이동 화면 (FE 협업 규칙 4.3)
+// 이어하기 / 투표 현황 보기: 방 상태별 이동 화면
 const goActiveRoom = ({ room_id, room_status }: ActiveRoom) => {
-  switch (room_status) {
-    case "WAITING":
-      router.push({ pathname: "/waiting/[roomId]", params: { roomId: String(room_id) } });
-      break;
-    case "VOTING":
-      router.push(`/rooms/${room_id}/vote-status`);
-      break;
-    case "VOTE_CLOSED":
-    case "QUEST_CONFIRMED":
-      router.push(`/rooms/${room_id}/confirm`);
-      break;
-    case "IN_PROGRESS":
-      router.push(`/rooms/${room_id}/progress`);
-      break;
-  }
+  const href = activeRoomHref(room_id, room_status);
+  if (href) router.push(href);
 };
 
 export default function HomeScreen() {

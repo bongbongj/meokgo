@@ -6,9 +6,9 @@
 // - 크기는 width / height로 정하고, 안쪽 여백 · 글자 크기는 width에 비례 (썸네일과 미리보기가 같은 모양)
 
 import React, { forwardRef } from "react";
-import { Image, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { COLORS } from "../../constants/colors";
-import { getPhotoSource } from "../../api/recordApi";
+import PhotoImage from "../common/PhotoImage";
 
 export type StoryLayout = "mood" | "collage";
 
@@ -56,7 +56,7 @@ const StoryCard = forwardRef<View, StoryCardProps>(function StoryCard(
     >
       {layout === "mood" ? (
         <View style={styles.row}>
-          {main && <Image source={getPhotoSource(main)} style={styles.moodMain} />}
+          {main && <PhotoImage url={main} style={styles.moodMain} />}
           <View
             style={[
               styles.moodSide,
@@ -64,9 +64,9 @@ const StoryCard = forwardRef<View, StoryCardProps>(function StoryCard(
             ]}
           >
             {rest.map((url, index) => (
-              <Image
+              <PhotoImage
                 key={`${url}-${index}`}
-                source={getPhotoSource(url)}
+                url={url}
                 style={[styles.moodPhoto, { height: height * 0.228, borderRadius: 3 * unit }]}
               />
             ))}
@@ -76,7 +76,7 @@ const StoryCard = forwardRef<View, StoryCardProps>(function StoryCard(
       ) : (
         <View style={styles.column}>
           {photoUrls.map((url, index) => (
-            <Image key={`${url}-${index}`} source={getPhotoSource(url)} style={styles.collagePhoto} />
+            <PhotoImage key={`${url}-${index}`} url={url} style={styles.collagePhoto} />
           ))}
           <View
             style={[

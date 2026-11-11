@@ -31,6 +31,7 @@ export interface SelectedRegion {
 /**
  * 04. 탐험 지역 선택 바텀시트
  * - 검색, 최근 선택 지역, 시/도 카테고리 탭, 세부 지역 2열 목록
+ * - 상위 지역(시/도)이 없는 지역 데이터면 카테고리 탭 없이 전체 지역을 목록으로 표시
  * - 지역은 1개만 선택, 선택 즉시 조건 선택 화면으로 복귀
  */
 export default function RegionSelectSheet({
@@ -45,20 +46,19 @@ export default function RegionSelectSheet({
   onClose: () => void;
 }) {
   const [keyword, setKeyword] = useState("");
-  const [cities, setCities] = useState<Region[]>([]);
+  const [regions, setRegions] = useState<Region[]>([]); // 전체 지역
+  const [searchResults, setSearchResults] = useState<Region[]>([]);
   const [recentRegions, setRecentRegions] = useState<RecentRegion[]>([]);
   const [openCityId, setOpenCityId] = useState<number | null>(null);
-  const [districts, setDistricts] = useState<Region[]>([]);
 
-  // 시트가 열릴 때 카테고리·최근 지역 조회
+  // 시트가 열릴 때 전체 지역·최근 지역 조회
   useEffect(() => {
     if (!visible) return;
     let ignore = false;
     fetchRegions({})
       .then((res) => {
         if (ignore) return;
-        setCities(res.data.regions);
-        setOpenCityId((prev) => prev ?? res.data.regions[0]?.region_id ?? null);
+        setRegions(res.data.regions);
       })
       .catch(() => {});
     fetchRecentRegions()
@@ -71,25 +71,19 @@ export default function RegionSelectSheet({
     };
   }, [visible]);
 
-  // 검색어가 있으면 검색 결과, 없으면 펼친 카테고리의 하위 지역
+  // 검색어가 있으면 서버에서 이름 검색
   useEffect(() => {
-    if (!visible) return;
+    if (!visible || !keyword.trim()) return;
     let ignore = false;
-    const params = keyword.trim()
-      ? { keyword }
-      : openCityId
-        ? { parent_region_id: openCityId }
-        : null;
-    if (!params) return;
-    fetchRegions(params)
+    fetchRegions({ keyword })
       .then((res) => {
-        if (!ignore) setDistricts(res.data.regions);
+        if (!ignore) setSearchResults(res.data.regions);
       })
       .catch(() => {});
     return () => {
       ignore = true;
     };
-  }, [visible, keyword, openCityId]);
+  }, [visible, keyword]);
 
   const handleSelect = (region: SelectedRegion) => {
     onSelect(region);
@@ -98,6 +92,17 @@ export default function RegionSelectSheet({
   };
 
   const isSearching = keyword.trim().length > 0;
+
+  // 하위 지역이 하나라도 있으면 상위 지역을 카테고리 탭으로, 없으면 전체를 바로 목록으로 표시
+  const parentIds = new Set(regions.map((r) => r.parent_region_id));
+  const isCategory = (region: Region) => parentIds.has(region.region_id);
+  const cities = regions.filter(isCategory);
+  const activeCityId = openCityId ?? cities[0]?.region_id ?? null;
+  const districts = isSearching
+    ? searchResults.filter((r) => !isCategory(r))
+    : cities.length > 0
+      ? regions.filter((r) => r.parent_region_id === activeCityId)
+      : regions;
 
   return (
     <Modal
@@ -163,10 +168,10 @@ export default function RegionSelectSheet({
           </View>
 
           {/* 시/도 카테고리 탭 (3열) */}
-          {!isSearching && (
+          {!isSearching && cities.length > 0 && (
             <View style={styles.cityGrid}>
               {cities.map((city) => {
-                const isOpen = city.region_id === openCityId;
+                const isOpen = city.region_id === activeCityId;
                 return (
                   <TouchableOpacity
                     key={city.region_id}

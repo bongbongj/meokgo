@@ -7,8 +7,10 @@
 import { getDeviceKey } from "./deviceKey";
 import type { ApiErrorBody, ApiErrorCode, ApiFieldError, ApiResponse } from "./types";
 
-const SERVER_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:8080";
-export const API_BASE_URL = `${SERVER_URL.replace(/\/$/, "")}/api/v1`;
+export const SERVER_URL = (
+  process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:8080"
+).replace(/\/$/, "");
+export const API_BASE_URL = `${SERVER_URL}/api/v1`;
 
 const TIMEOUT_MS = 10000;
 

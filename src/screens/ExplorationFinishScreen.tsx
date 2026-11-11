@@ -2,7 +2,7 @@
 // 18. 탐험 종료
 // - 종료 안내 + 탐험 요약(지역명 / 날짜 / 대표 참여자 외 N명 / 완료한 퀘스트 수)
 // - 탐험 기록 보러가기 → 15 탐험 기록
-// - 종료된 탐험의 진행 조회로 요약과 기록 번호를 가져온다 (record_id는 API명세서에 없음 — README 컨펌 필요 사항)
+// - 종료된 탐험의 진행 조회로 요약을, 내 기록 목록으로 기록 번호를 가져온다
 
 import React, { useEffect, useState } from "react";
 import {
@@ -21,8 +21,23 @@ import { formatDotDate } from "../utils/date";
 import { isApiError } from "../api/client";
 import { fetchRoomDetail } from "../api/voteApi";
 import { ExplorationProgress, fetchExplorationProgress } from "../api/explorationApi";
+import { fetchMyRecords } from "../api/recordApi";
 import { NavHeader } from "../components/ScreenHeader";
 import PrimaryButton from "../components/common/PrimaryButton";
+
+/**
+ * 방금 종료한 탐험의 기록 번호 (진행 조회에 record_id가 없어 내 기록 목록에서 찾는다)
+ * - 기록은 종료 시점에 만들어지므로 같은 지역의 가장 최근 기록이 이번 탐험이다
+ * - TODO: BE가 진행 조회에 record_id를 주면 제거 (README 컨펌 필요 사항 C-12)
+ */
+const findRecordId = async (regionName: string): Promise<number | null> => {
+  try {
+    const { records } = await fetchMyRecords(0, 5);
+    return records.find((r) => r.region_name === regionName)?.record_id ?? null;
+  } catch {
+    return null;
+  }
+};
 
 interface ExplorationFinishScreenProps {
   roomId: number;
@@ -37,11 +52,12 @@ export default function ExplorationFinishScreen({ roomId }: ExplorationFinishScr
   useEffect(() => {
     let cancelled = false;
     Promise.all([fetchExplorationProgress(roomId), fetchRoomDetail(roomId)]).then(
-      ([result, detail]) => {
-        if (cancelled) return;
+      async ([result, detail]) => {
         const host = detail.participants.find((p) => p.role === "HOST");
+        const recordId = result.record_id ?? (await findRecordId(result.region_name));
+        if (cancelled) return;
         setHostNickname(host?.nickname ?? detail.participants[0]?.nickname ?? "");
-        setProgress(result);
+        setProgress({ ...result, record_id: recordId });
       },
       (e) => {
         if (!cancelled) setError(isApiError(e) ? e.message : "잠시 후 다시 시도해주세요.");

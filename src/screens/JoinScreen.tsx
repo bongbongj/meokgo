@@ -29,6 +29,9 @@ import {
   UnjoinableReason,
 } from "../api/inviteApi";
 import { ApiError } from "../api/apiError";
+import { fetchRoomDetail } from "../api/roomApi";
+import { fetchBootstrap } from "../api/userApi";
+import { activeRoomHref } from "../utils/roomNavigation";
 import { useToast } from "../components/Toast";
 import SplashScreen from "./SplashScreen";
 
@@ -44,9 +47,23 @@ const formatInviteDate = (iso: string) => {
 // 참여 API 오류 코드 → 06-1 참여 마감 사유
 const CLOSED_REASON_BY_CODE: Record<string, UnjoinableReason> = {
   "ROOM-002": "ALREADY_STARTED",
+  "ROOM-003": "FINISHED", // 종료된 방 (이탈한 참여자의 재입장도 같은 코드) — 시안상 투표 시작과 같은 안내
   "PARTICIPANT-002": "FULL",
   "INVITE-001": "INVALID_LINK",
   "INVITE-002": "EXPIRED",
+};
+
+// 이 기기가 참여 중인 탐험방과 그 상태에 맞는 화면 (없거나 조회 실패면 null)
+const findMyRoomHref = async () => {
+  try {
+    const { active_room_id: roomId } = await fetchBootstrap();
+    if (roomId === null) return null;
+    const { data } = await fetchRoomDetail(roomId);
+    const href = activeRoomHref(roomId, data.room_status);
+    return href ? { roomId, href } : null;
+  } catch {
+    return null;
+  }
 };
 
 // 참여 불가 화면으로 교체 (뒤로가기로 다시 들어와도 같은 화면 유지)
@@ -66,12 +83,20 @@ export default function JoinScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const { showToast, toast } = useToast();
 
-  // 초대 정보 조회, 참여할 수 없으면 06-1로 분기
+  // 초대 정보 조회
+  // - 이미 이 방에 참여한 기기면 투표 시작 여부와 상관없이 방으로 돌아간다
+  //   (웹 참여자는 초대 링크가 유일한 진입로라 창을 닫았다가 다시 들어오는 경우가 많다)
+  // - 그 외 참여할 수 없으면 06-1로 분기
   useEffect(() => {
     let ignore = false;
-    fetchInvite(token)
-      .then((res) => {
+    Promise.all([fetchInvite(token), findMyRoomHref()])
+      .then(([res, myRoom]) => {
         if (ignore) return;
+        const myRoomHref = myRoom?.roomId === res.data.room_id ? myRoom.href : null;
+        if (myRoomHref) {
+          router.replace(myRoomHref);
+          return;
+        }
         if (!res.data.joinable) {
           goClosed(res.data.unjoinable_reason ?? "INVALID_LINK");
           return;
@@ -103,11 +128,16 @@ export default function JoinScreen() {
     if (!canSubmit) return;
     setIsLoading(true);
     try {
-      const res = await joinInvite(token, nickname.trim());
-      router.replace({
-        pathname: "/waiting/[roomId]",
-        params: { roomId: String(res.data.room_id) },
-      });
+      const { room_id: roomId, room_status: roomStatus } = (
+        await joinInvite(token, nickname.trim())
+      ).data;
+      // 기존 참여자로 복귀하면 이미 투표·탐험 중일 수 있다
+      router.replace(
+        activeRoomHref(roomId, roomStatus) ?? {
+          pathname: "/waiting/[roomId]",
+          params: { roomId: String(roomId) },
+        },
+      );
     } catch (error) {
       const code = error instanceof ApiError ? error.code : "";
       if (code === "PARTICIPANT-003") {

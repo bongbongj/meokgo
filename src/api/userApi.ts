@@ -5,6 +5,39 @@
 
 import { api } from "./client";
 import { mockResolve, USE_MOCK } from "./mock";
+import { getStoredNickname } from "../utils/userStorage";
+
+export interface Bootstrap {
+  user_id: number | null;
+  nickname: string | null;
+  first_launch: boolean;
+  has_active_room: boolean;
+  active_room_id: number | null;
+  active_participant_id: number | null;
+  restored_by_device: boolean;
+  vote_restored: boolean;
+}
+
+/** 앱 시작 정보 — 서버에 등록된 닉네임, 진행 중인 탐험방 */
+export const fetchBootstrap = async (): Promise<Bootstrap> => {
+  if (USE_MOCK.user) {
+    const nickname = await getStoredNickname();
+    return mockResolve(
+      {
+        user_id: nickname ? 1 : null,
+        nickname,
+        first_launch: !nickname,
+        has_active_room: false,
+        active_room_id: null,
+        active_participant_id: null,
+        restored_by_device: false,
+        vote_restored: false,
+      },
+      0,
+    );
+  }
+  return api.get<Bootstrap>("/users/me/bootstrap");
+};
 
 export interface NicknameUpdateResult {
   user_id: number;

@@ -8,7 +8,6 @@
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Image,
   Modal,
   Pressable,
   ScrollView,
@@ -23,7 +22,8 @@ import { COLORS } from "../constants/colors";
 import { moderateScale, scale, verticalScale } from "../utils/responsive";
 import { formatDotDate } from "../utils/date";
 import { isApiError } from "../api/client";
-import { fetchRecordDetail, getPhotoSource, RecordDetail } from "../api/recordApi";
+import { fetchRecordDetail, RecordDetail } from "../api/recordApi";
+import PhotoImage from "../components/common/PhotoImage";
 import { LogoHeader } from "../components/ScreenHeader";
 import PrimaryButton from "../components/common/PrimaryButton";
 import CheckCircle from "../components/common/CheckCircle";
@@ -87,7 +87,7 @@ export default function RecordDetailScreen({ recordId }: RecordDetailScreenProps
                   accessibilityRole="imagebutton"
                   accessibilityLabel="대표 사진 크게 보기"
                 >
-                  <Image source={getPhotoSource(cover.photo_url)} style={styles.cover} />
+                  <PhotoImage url={cover.photo_url} style={styles.cover} />
                 </TouchableOpacity>
               ) : (
                 <View style={[styles.cover, styles.coverEmpty]} />
@@ -116,7 +116,7 @@ export default function RecordDetailScreen({ recordId }: RecordDetailScreenProps
                       accessibilityRole="imagebutton"
                       accessibilityLabel="사진 크게 보기"
                     >
-                      <Image source={getPhotoSource(photo.photo_url)} style={styles.photo} />
+                      <PhotoImage url={photo.photo_url} style={styles.photo} />
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
@@ -171,11 +171,7 @@ export default function RecordDetailScreen({ recordId }: RecordDetailScreenProps
           accessibilityLabel="사진 닫기"
         >
           {viewerUrl && (
-            <Image
-              source={getPhotoSource(viewerUrl)}
-              style={styles.viewerImage}
-              resizeMode="contain"
-            />
+            <PhotoImage url={viewerUrl} style={styles.viewerImage} contentFit="contain" />
           )}
         </Pressable>
       </Modal>

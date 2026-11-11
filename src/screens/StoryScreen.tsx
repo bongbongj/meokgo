@@ -9,7 +9,6 @@
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -26,7 +25,8 @@ import { moderateScale, scale, verticalScale } from "../utils/responsive";
 import { formatDotDate } from "../utils/date";
 import { saveStoryDraft } from "../utils/storyDraft";
 import { isApiError } from "../api/client";
-import { fetchRecordDetail, getPhotoSource, RecordDetail, RecordPhoto } from "../api/recordApi";
+import { fetchRecordDetail, RecordDetail, RecordPhoto } from "../api/recordApi";
+import PhotoImage from "../components/common/PhotoImage";
 import {
   fetchStoryTemplates,
   LocalPhoto,
@@ -211,7 +211,7 @@ export default function StoryScreen({ recordId }: StoryScreenProps) {
                     accessibilityLabel={`${SLOT_LABELS[index]} ${slot ? "바꾸기" : "추가"}`}
                   >
                     {slot ? (
-                      <Image source={getPhotoSource(slot.photo_url)} style={styles.slot} />
+                      <PhotoImage url={slot.photo_url} style={styles.slot} />
                     ) : (
                       <View style={[styles.slot, styles.slotEmpty]}>
                         <SymbolView

@@ -51,7 +51,10 @@ export type ApiErrorCode =
   | "FINAL-001"
   | "RECORD-001"
   | "STORY-001"
+  | "STORY-002"
   | "FILE-001"
+  | "FILE-002"
+  | "FILE-003"
   | "NETWORK" // 서버에 연결하지 못함
   | "TIMEOUT" // 응답 시간 초과
   | "UNKNOWN"; // 형식을 알 수 없는 오류 응답
@@ -78,7 +81,6 @@ export type ParticipantStatus =
   | "LEFT";
 export type QuestType =
   | "COMMON"
-  | "LOCAL"
   | "COOPERATIVE"
   | "TRANSITION"
   | "REVISIT";

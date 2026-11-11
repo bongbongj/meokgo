@@ -72,6 +72,16 @@ public class Region {
     }
 
     /**
+     * 지역명과 노출 순서를 변경한다.
+     *
+     * @author 정효림
+     */
+    public void updateNameAndDisplayOrder(String name, int displayOrder) {
+        this.name = name;
+        this.displayOrder = displayOrder;
+    }
+
+    /**
      * 지역 대표 이미지 주소를 등록하며 빈 값은 미등록으로 처리한다.
      *
      * @author 정효림
@@ -83,11 +93,27 @@ public class Region {
         }
         String value = imageUrl.trim();
         URI uri = URI.create(value);
-        if (value.length() > 500 || !value.startsWith("https://") || uri.getHost() == null
-                || uri.getUserInfo() != null) {
-            throw new IllegalArgumentException("지역 대표 이미지는 500자 이내의 HTTPS 절대 URL이어야 합니다.");
+        if (value.length() > 500 || !isAllowedImageUri(uri) || uri.getUserInfo() != null) {
+            throw new IllegalArgumentException(
+                    "지역 대표 이미지는 500자 이내의 HTTPS 절대 URL이어야 하며 로컬 개발 주소만 HTTP를 허용합니다.");
         }
         this.imageUrl = value;
+    }
+
+    /**
+     * 운영 환경은 HTTPS만 허용하고 로컬 개발 환경은 HTTP 주소를 허용한다.
+     *
+     * @author 정효림
+     */
+    private boolean isAllowedImageUri(URI uri) {
+        if (uri.getHost() == null) {
+            return false;
+        }
+        if ("https".equalsIgnoreCase(uri.getScheme())) {
+            return true;
+        }
+        return "http".equalsIgnoreCase(uri.getScheme())
+                && ("localhost".equalsIgnoreCase(uri.getHost()) || "127.0.0.1".equals(uri.getHost()));
     }
 
     public String getLevel() {

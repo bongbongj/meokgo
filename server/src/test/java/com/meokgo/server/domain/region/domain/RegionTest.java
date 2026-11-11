@@ -34,6 +34,15 @@ class RegionTest {
     }
 
     @ParameterizedTest
+    @ValueSource(strings = {"http://localhost:8080/region-images/a.jpg",
+            "http://127.0.0.1:8080/region-images/a.jpg"})
+    void 로컬개발주소를_허용한다(String value) {
+        Region region = new Region(null, "추가지역", "DISTRICT", 1);
+        region.updateImageUrl(value);
+        assertThat(region.getImageUrl()).isEqualTo(value);
+    }
+
+    @ParameterizedTest
     @ValueSource(ints = {500, 501})
     void 주소길이는_오백자까지_허용한다(int length) {
         Region region = new Region(null, "추가지역", "DISTRICT", 1);

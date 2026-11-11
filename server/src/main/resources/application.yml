@@ -43,6 +43,8 @@ springdoc:
     tags-sorter: alpha
 
 app:
+  region-image:
+    public-base-url: ${REGION_IMAGE_PUBLIC_BASE_URL:http://localhost:8080}
   retention:
     region-master-visit-days: ${RETENTION_REGION_MASTER_VISIT_DAYS:3}
   storage:

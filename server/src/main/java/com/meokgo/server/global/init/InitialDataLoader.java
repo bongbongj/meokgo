@@ -8,6 +8,8 @@ import com.meokgo.server.domain.region.repository.RegionRepository;
 import com.meokgo.server.domain.room.domain.ScheduleType;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
@@ -16,12 +18,31 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 public class InitialDataLoader implements ApplicationRunner {
 
+    private static final List<String> INITIAL_REGION_NAMES = List.of(
+            "성수", "홍대", "잠실", "연남동", "망원동", "합정", "한남동", "이태원", "서촌", "북촌",
+            "익선동", "을지로", "강남", "신사", "가로수길", "압구정", "건대", "신촌", "문래", "여의도"
+    );
+    private static final Map<String, String> REGION_IMAGE_FILES = Map.of(
+            "성수", "seongsu.jpg",
+            "홍대", "hongdae.jpg",
+            "잠실", "jamsil.jpg",
+            "망원동", "mangwon.jpg",
+            "북촌", "bukchon.jpg",
+            "익선동", "ikseondong.jpg",
+            "을지로", "euljiro.jpg",
+            "강남", "gangnam.jpg",
+            "신사", "sinsa.jpg"
+    );
+
     private final RegionRepository regionRepository;
     private final QuestRepository questRepository;
+    private final String regionImageBaseUrl;
 
-    public InitialDataLoader(RegionRepository regionRepository, QuestRepository questRepository) {
+    public InitialDataLoader(RegionRepository regionRepository, QuestRepository questRepository,
+            @Value("${app.region-image.public-base-url:http://localhost:8080}") String regionImageBaseUrl) {
         this.regionRepository = regionRepository;
         this.questRepository = questRepository;
+        this.regionImageBaseUrl = regionImageBaseUrl.replaceAll("/+$", "");
     }
 
     @Override
@@ -31,15 +52,53 @@ public class InitialDataLoader implements ApplicationRunner {
         loadQuests();
     }
 
+    /**
+     * 기존 지역의 연결 정보를 유지하면서 초기 지역과 노출 순서를 반영한다.
+     *
+     * @author 정효림
+     */
     private void loadRegions() {
-        if (regionRepository.count() > 0) {
+        List<Region> existingRegions = regionRepository.findAll().stream()
+                .filter(region -> region.getParentRegionId() == null && "DISTRICT".equals(region.getLevel()))
+                .toList();
+        for (int index = 0; index < INITIAL_REGION_NAMES.size(); index++) {
+            String name = INITIAL_REGION_NAMES.get(index);
+            int displayOrder = index + 1;
+            Region region = existingRegions.stream()
+                    .filter(value -> name.equals(value.getName()))
+                    .findFirst()
+                    .orElse(null);
+            if (region == null && "망원동".equals(name)) {
+                region = existingRegions.stream()
+                        .filter(value -> "망원".equals(value.getName()))
+                        .findFirst()
+                        .orElse(null);
+            }
+            if (region == null) {
+                region = new Region(null, name, "DISTRICT", displayOrder);
+                registerDefaultImage(region, name);
+                regionRepository.save(region);
+            } else {
+                region.updateNameAndDisplayOrder(name, displayOrder);
+                registerDefaultImage(region, name);
+            }
+        }
+    }
+
+    /**
+     * 별도 이미지가 등록되지 않은 초기 지역에 기본 대표 이미지를 연결한다.
+     *
+     * @author 정효림
+     */
+    private void registerDefaultImage(Region region, String regionName) {
+        String imageFile = REGION_IMAGE_FILES.get(regionName);
+        if (imageFile == null) {
             return;
         }
-        regionRepository.saveAll(List.of(
-                new Region(null, "홍대", "DISTRICT", 1),
-                new Region(null, "성수", "DISTRICT", 2),
-                new Region(null, "망원", "DISTRICT", 3)
-        ));
+        String imagePath = "/region-images/" + imageFile;
+        if (region.getImageUrl() == null || region.getImageUrl().endsWith(imagePath)) {
+            region.updateImageUrl(regionImageBaseUrl + imagePath);
+        }
     }
 
     private void loadQuests() {

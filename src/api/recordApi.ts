@@ -201,7 +201,24 @@ export const fetchMyStatistics = async (): Promise<UserStatistics> => {
 /** 탐험 기록 목록 (최신순) */
 export const fetchMyRecords = async (page = 0, size = 20): Promise<RecordList> => {
   if (isMocked()) return mockResolve({ records: mockRecordList(), has_next: false });
-  return api.get<RecordList>(`/users/me/records?page=${page}&size=${size}`);
+  const list = await api.get<RecordList>(`/users/me/records?page=${page}&size=${size}`);
+  return { ...list, records: await Promise.all(list.records.map(withThumbnail)) };
+};
+
+/**
+ * 기록 카드 썸네일 — 15 탐험 기록의 대표 사진(첫 번째 사진)과 같게
+ * - BE 목록 응답에 thumbnail_url이 없어 기록 상세로 채운다 (기록 수만큼 요청이 늘어난다)
+ * - 상세 조회에 실패하거나 사진이 없으면 회색 기본 이미지
+ * - TODO: BE가 목록에 thumbnail_url을 주면 제거 (README 컨펌 필요 사항 C-14)
+ */
+const withThumbnail = async (record: RecordSummary): Promise<RecordSummary> => {
+  if (record.thumbnail_url) return record;
+  try {
+    const detail = await api.get<RecordDetail>(`/records/${record.record_id}`);
+    return { ...record, thumbnail_url: detail.photos[0]?.photo_url ?? null };
+  } catch {
+    return { ...record, thumbnail_url: null };
+  }
 };
 
 /** 탐험 기록 상세 — 지역, 날짜, 참여자, 사진, 완료 퀘스트 */

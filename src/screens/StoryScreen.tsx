@@ -2,11 +2,12 @@
 // 16. 스토리 템플릿 선택
 // - 템플릿 선택: 01 MOOD / 02 콜라주 (선택한 템플릿 이름을 코랄로 강조), 썸네일은 고른 사진으로 바로 갱신
 // - 사진 선택: 지역 / 음식 / 함께한 / 추가 사진 4칸. 처음에는 기록 사진으로 채움
-//   칸을 누르면 갤러리에서 교체, X로 비우기. JPG / PNG, 장당 10MB 이하
+//   칸을 누르면 갤러리에서 교체, X로 비우기. 고른 사진은 긴 변 2048px JPEG로 변환
+//   이미 서버에 올라간 사진은 바꾸거나 비울 수 없다 (BE에 사진 삭제 API 없음)
 // - 최소 1장 — 0장이면 미리보기 비활성. 빈 칸은 템플릿에서 제외
-// - 미리보기: 새로 고른 사진만 업로드(POST /records/{id}/photos) → 선택 상태 저장 → 17 기록 미리보기
+// - 미리보기: 선택 상태만 저장 → 17 기록 미리보기 (사진 업로드는 17에서 저장·공유할 때)
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -19,22 +20,22 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { SymbolView } from "expo-symbols";
 import * as ImagePicker from "expo-image-picker";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { COLORS } from "../constants/colors";
 import { moderateScale, scale, verticalScale } from "../utils/responsive";
 import { formatDotDate } from "../utils/date";
-import { saveStoryDraft } from "../utils/storyDraft";
+import { getStoryDraft, saveStoryDraft } from "../utils/storyDraft";
+import type { DraftPhoto } from "../utils/storyDraft";
+import { prepareStoryPhoto } from "../utils/storyPhoto";
 import { isApiError } from "../api/client";
-import { fetchRecordDetail, RecordDetail, RecordPhoto } from "../api/recordApi";
+import { fetchRecordDetail, RecordDetail } from "../api/recordApi";
 import PhotoImage from "../components/common/PhotoImage";
 import {
   fetchStoryTemplates,
   LocalPhoto,
   STORY_MAX_PHOTOS,
   STORY_PHOTO_MAX_BYTES,
-  STORY_PHOTO_TYPES,
   StoryTemplate,
-  uploadRecordPhotos,
 } from "../api/storyApi";
 import { LogoHeader } from "../components/ScreenHeader";
 import PrimaryButton from "../components/common/PrimaryButton";
@@ -48,7 +49,10 @@ interface StoryScreenProps {
 const SLOT_LABELS = ["지역 사진", "음식 사진", "함께한 사진", "추가 사진"];
 
 /** 사진 칸 — 이미 서버에 있는 사진(photo_id) 또는 새로 고른 기기 사진(local) */
-type Slot = { photo_url: string; photo_id?: number; local?: LocalPhoto } | null;
+type Slot = DraftPhoto | null;
+
+/** 서버에 올라간 사진 칸 — 바꾸거나 비울 수 없다 */
+const isLocked = (slot: Slot) => !!slot && !slot.local;
 
 // 2열 칸 너비 — mobileWrapper(최대 393) 안에서 계산. scale()은 기기 전체 너비 기준이라
 // 393dp보다 넓은 폰에서 scale(169) 두 칸이 한 줄에 들어가지 않고 줄바꿈됨
@@ -60,6 +64,15 @@ const GRID_GAP = 13;
 const toTemplateLabel = (template: StoryTemplate, index: number) =>
   `${String(index + 1).padStart(2, "0")} ${template.template_name}`;
 
+/** 업로드할 파일의 실제 바이트 수 (웹·앱 모두 fetch로 읽을 수 있음, 읽지 못하면 0) */
+const photoSizeOf = async (uri: string): Promise<number> => {
+  try {
+    return (await (await fetch(uri)).blob()).size;
+  } catch {
+    return 0;
+  }
+};
+
 export default function StoryScreen({ recordId }: StoryScreenProps) {
   const [record, setRecord] = useState<RecordDetail | null>(null);
   const [templates, setTemplates] = useState<StoryTemplate[] | null>(null);
@@ -67,7 +80,6 @@ export default function StoryScreen({ recordId }: StoryScreenProps) {
   const [slots, setSlots] = useState<Slot[]>(() => Array(STORY_MAX_PHOTOS).fill(null));
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
-  const [uploading, setUploading] = useState(false);
   const { showToast, toast } = useToast();
   const { width: windowWidth } = useWindowDimensions();
   const cellWidth =
@@ -81,11 +93,16 @@ export default function StoryScreen({ recordId }: StoryScreenProps) {
         if (cancelled) return;
         setRecord(detail);
         setTemplates(list);
-        setTemplateId((current) => current ?? list[0]?.template_id ?? null);
+        // 고르던 상태(초안)가 있으면 그대로 되살리고, 없으면 기록 사진으로 채운다
+        const draft = getStoryDraft(recordId);
+        setTemplateId(
+          (current) => current ?? draft?.template_id ?? list[0]?.template_id ?? null,
+        );
         setSlots((current) =>
           current.some(Boolean)
             ? current
-            : Array.from({ length: STORY_MAX_PHOTOS }, (_, i) => detail.photos[i] ?? null),
+            : (draft?.slots ??
+              Array.from({ length: STORY_MAX_PHOTOS }, (_, i) => detail.photos[i] ?? null)),
         );
       },
       (e) => {
@@ -107,49 +124,49 @@ export default function StoryScreen({ recordId }: StoryScreenProps) {
 
   // 갤러리 사진 고르기 (이미지는 권한 요청 없이 열 수 있음 — expo-image-picker 문서)
   const pickPhoto = async (index: number) => {
+    if (isLocked(slots[index])) {
+      showToast("이미 저장한 사진은 바꿀 수 없어요");
+      return;
+    }
+    // 화질은 올리기 직전 변환(prepareStoryPhoto)에서 한 번만 낮춘다
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
-      quality: 0.9,
+      quality: 1,
     });
     if (result.canceled || !result.assets?.[0]) return;
     const asset = result.assets[0];
-    if (asset.mimeType && !STORY_PHOTO_TYPES.includes(asset.mimeType)) {
-      showToast("JPG, PNG 사진만 올릴 수 있어요");
+    // 긴 변 2048px JPEG로 변환 — 용량 초과를 막고 HEIC 사진도 올릴 수 있게 한다
+    let local: LocalPhoto;
+    try {
+      local = await prepareStoryPhoto(asset, index);
+    } catch {
+      showToast("이 사진은 사용할 수 없어요. JPG 또는 PNG 사진을 골라주세요");
       return;
     }
-    if (asset.fileSize && asset.fileSize > STORY_PHOTO_MAX_BYTES) {
+    // 변환 후에는 거의 넘지 않지만, 넘으면 서버가 응답 없이 연결을 끊으므로 미리 막는다
+    if ((await photoSizeOf(local.uri)) > STORY_PHOTO_MAX_BYTES) {
       showToast("10MB 이하 사진만 올릴 수 있어요");
       return;
     }
-    setSlot(index, {
-      photo_url: asset.uri,
-      local: { uri: asset.uri, fileName: asset.fileName, mimeType: asset.mimeType },
-    });
+    setSlot(index, { photo_url: local.uri, local });
   };
 
   const filled = slots.filter((slot): slot is NonNullable<Slot> => slot !== null);
 
-  const handlePreview = async () => {
-    if (!templateId || filled.length === 0 || uploading) return;
-    setUploading(true);
-    try {
-      const locals = filled.filter((slot) => slot.local);
-      const uploaded = locals.length
-        ? (await uploadRecordPhotos(recordId, locals.map((slot) => slot.local!))).photos
-        : [];
-      // 업로드 결과를 고른 순서대로 다시 끼워 넣는다
-      let next = 0;
-      const photos: RecordPhoto[] = filled.map((slot) =>
-        slot.local ? uploaded[next++] : { photo_id: slot.photo_id!, photo_url: slot.photo_url },
-      );
-      saveStoryDraft(recordId, { template_id: templateId, photos });
-      router.push(`/records/${recordId}/preview`);
-    } catch (e) {
-      showToast(isApiError(e) ? e.message : "사진을 올리지 못했어요. 다시 시도해주세요");
-    } finally {
-      setUploading(false);
-    }
+  // 사진은 여기서 올리지 않는다 — 17에서 저장·공유할 때 한 번만 올린다 (utils/storyDraft)
+  const handlePreview = () => {
+    if (!templateId || filled.length === 0) return;
+    saveStoryDraft(recordId, { template_id: templateId, slots });
+    router.push(`/records/${recordId}/preview`);
   };
+
+  // 17에서 저장·공유로 사진이 올라간 뒤 돌아오면, 그 사진들은 올라간 사진(잠김)으로 바꾼다
+  useFocusEffect(
+    useCallback(() => {
+      const draft = getStoryDraft(recordId);
+      if (draft) setSlots((current) => (current.some(Boolean) ? draft.slots : current));
+    }, [recordId]),
+  );
 
   const photoUrls = filled.map((slot) => slot.photo_url);
 
@@ -208,7 +225,9 @@ export default function StoryScreen({ recordId }: StoryScreenProps) {
                     activeOpacity={0.85}
                     onPress={() => pickPhoto(index)}
                     accessibilityRole="button"
-                    accessibilityLabel={`${SLOT_LABELS[index]} ${slot ? "바꾸기" : "추가"}`}
+                    accessibilityLabel={`${SLOT_LABELS[index]} ${
+                      isLocked(slot) ? "저장됨" : slot ? "바꾸기" : "추가"
+                    }`}
                   >
                     {slot ? (
                       <PhotoImage url={slot.photo_url} style={styles.slot} />
@@ -222,7 +241,7 @@ export default function StoryScreen({ recordId }: StoryScreenProps) {
                       </View>
                     )}
                   </TouchableOpacity>
-                  {slot && (
+                  {slot && !isLocked(slot) && (
                     <TouchableOpacity
                       style={styles.remove}
                       onPress={() => setSlot(index, null)}
@@ -260,7 +279,6 @@ export default function StoryScreen({ recordId }: StoryScreenProps) {
             label="미리보기"
             onPress={handlePreview}
             disabled={!templateId || filled.length === 0}
-            loading={uploading}
           />
           {record && filled.length === 0 && (
             <Text style={styles.caption}>사진을 1장 이상 골라주세요</Text>

@@ -2,6 +2,8 @@
 // 17. 기록 미리보기
 // - 16에서 고른 템플릿 · 사진으로 9:16 기록 이미지를 그린다 (지역명 · 날짜 · 완료 퀘스트 수 자동 삽입)
 // - 16을 거치지 않고 열면 기록 사진 앞 4장 + 첫 번째 템플릿
+// - 저장·공유를 처음 누를 때 새로 고른 사진을 서버에 올린다 (POST /records/{id}/photos)
+//   그 전까지는 기기 사진으로만 그리므로 16으로 돌아가 자유롭게 바꿀 수 있다
 // - 이미지 저장: 카드를 1080 x 1920으로 캡처 → 앱은 사진 보관함에 저장, 웹은 파일 다운로드 (utils/saveStoryImage)
 // - 공유하기(앱): 캡처한 파일로 공유 시트 호출. 웹은 숨김
 
@@ -17,8 +19,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { COLORS } from "../constants/colors";
 import { moderateScale, scale, verticalScale } from "../utils/responsive";
 import { formatDotDate } from "../utils/date";
-import { getStoryDraft, StoryDraft } from "../utils/storyDraft";
+import { draftPhotos, getStoryDraft, StoryDraft } from "../utils/storyDraft";
 import { canShareStoryImage, saveStoryImage, shareStoryImage } from "../utils/saveStoryImage";
+import { getUploadErrorMessage, uploadDraftPhotos } from "../utils/storyPhoto";
 import { isApiError } from "../api/client";
 import { fetchRecordDetail, RecordDetail } from "../api/recordApi";
 import { fetchStoryTemplates, STORY_MAX_PHOTOS } from "../api/storyApi";
@@ -58,7 +61,7 @@ export default function StoryPreviewScreen({ recordId }: StoryPreviewScreenProps
         setDraft(
           getStoryDraft(recordId) ?? {
             template_id: templates[0]?.template_id ?? 1,
-            photos: detail.photos.slice(0, STORY_MAX_PHOTOS),
+            slots: detail.photos.slice(0, STORY_MAX_PHOTOS),
           },
         );
       },
@@ -89,10 +92,24 @@ export default function StoryPreviewScreen({ recordId }: StoryPreviewScreenProps
     setReloadKey((key) => key + 1);
   };
 
+  // 새로 고른 사진을 서버에 올린다. 실패하면 안내하고 false
+  // (화면의 카드는 기기 사진 그대로 둔다 — 서버 사진으로 바꾸면 다시 불러오는 동안 캡처가 비어 버린다)
+  const uploadPhotos = async () => {
+    if (!draft) return false;
+    try {
+      await uploadDraftPhotos(recordId, draft);
+      return true;
+    } catch (e) {
+      showToast(getUploadErrorMessage(e));
+      return false;
+    }
+  };
+
   const handleSave = async () => {
     if (!record || saving) return;
     setSaving(true);
     try {
+      if (!(await uploadPhotos())) return;
       const result = await saveStoryImage(cardRef, fileNameOf(record));
       if (result === "denied") showToast("사진 보관함 접근을 허용하면 저장할 수 있어요");
       else showToast("이미지를 저장했어요", { icon: "check" });
@@ -107,6 +124,7 @@ export default function StoryPreviewScreen({ recordId }: StoryPreviewScreenProps
     if (sharing) return;
     setSharing(true);
     try {
+      if (!(await uploadPhotos())) return;
       await shareStoryImage(cardRef);
     } catch {
       showToast("공유하지 못했어요. 다시 시도해주세요");
@@ -129,7 +147,7 @@ export default function StoryPreviewScreen({ recordId }: StoryPreviewScreenProps
               <StoryCard
                 ref={cardRef}
                 layout={getStoryLayout(draft.template_id)}
-                photoUrls={draft.photos.map((photo) => photo.photo_url)}
+                photoUrls={draftPhotos(draft).map((photo) => photo.photo_url)}
                 regionName={record.region_name}
                 dateText={formatDotDate(record.created_at)}
                 questCount={record.completed_quests.filter((q) => q.completed).length}

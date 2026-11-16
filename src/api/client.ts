@@ -13,6 +13,8 @@ export const SERVER_URL = (
 export const API_BASE_URL = `${SERVER_URL}/api/v1`;
 
 const TIMEOUT_MS = 10000;
+// 사진 업로드는 느린 연결에서 여러 장을 보내므로 더 오래 기다린다
+const UPLOAD_TIMEOUT_MS = 60000;
 
 /**
  * API 오류
@@ -83,7 +85,10 @@ const request = async <T>(
   if (!formData) headers["Content-Type"] = "application/json";
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const timer = setTimeout(
+    () => controller.abort(),
+    formData ? UPLOAD_TIMEOUT_MS : TIMEOUT_MS,
+  );
 
   let response: Response;
   try {

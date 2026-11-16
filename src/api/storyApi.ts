@@ -3,6 +3,7 @@
 // - 기록 이미지는 앱에서 템플릿을 그려 캡처한다 (17 기록 미리보기). 서버 Story 이미지 생성
 //   (POST / GET /records/{id}/story-image)은 사용하지 않음 — README 컨펌 필요 사항
 
+import { File } from "expo-file-system";
 import { Platform } from "react-native";
 import { api, ApiError } from "./client";
 import { mockResolve, USE_MOCK } from "./mock";
@@ -48,7 +49,12 @@ export const fetchStoryTemplates = async (): Promise<StoryTemplate[]> => {
   return data.templates;
 };
 
-/** 웹은 blob으로, 앱은 { uri, name, type } 형태로 FormData에 넣는다 */
+/**
+ * 웹은 blob으로, 앱은 expo-file-system의 File로 FormData에 넣는다
+ * - SDK 57부터 앱의 기본 fetch는 expo/fetch이고, 예전 React Native 방식인
+ *   { uri, name, type } 객체는 지원하지 않아 요청 자체가 실패한다
+ * - File은 Blob처럼 쓸 수 있고 파일 이름을 그대로 보낸다 (expo-file-system 문서의 업로드 예시)
+ */
 const appendPhoto = async (form: FormData, photo: LocalPhoto, index: number) => {
   const type = photo.mimeType ?? "image/jpeg";
   const name = photo.fileName ?? `photo-${index + 1}.${type === "image/png" ? "png" : "jpg"}`;
@@ -56,8 +62,7 @@ const appendPhoto = async (form: FormData, photo: LocalPhoto, index: number) => 
     const blob = await (await fetch(photo.uri)).blob();
     form.append("photos", blob, name);
   } else {
-    // React Native FormData는 파일을 { uri, name, type } 객체로 받는다
-    form.append("photos", { uri: photo.uri, name, type } as unknown as Blob);
+    form.append("photos", new File(photo.uri) as unknown as Blob);
   }
 };
 

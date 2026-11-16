@@ -88,10 +88,17 @@ export default function ConditionScreen() {
         },
       });
     } catch (error) {
+      // 서버 사전에 없는 기피 음식 표현은 COMMON-001 + avoid_foods 필드 오류로 내려온다
+      const isAvoidFoodsError =
+        isApiError(error) &&
+        error.code === "COMMON-001" &&
+        error.errors.some((e) => e.field === "avoid_foods");
       showToast(
-        isApiError(error) && error.code === "QUEST-003"
-          ? "조건에 맞는 퀘스트가 부족해요. 조건을 바꿔주세요"
-          : "탐험방을 만들지 못했어요. 다시 시도해주세요",
+        isAvoidFoodsError
+          ? "인식하지 못한 음식이 있어요. 다른 표현으로 적어주세요"
+          : isApiError(error) && error.code === "QUEST-003"
+            ? "조건에 맞는 퀘스트가 부족해요. 조건을 바꿔주세요"
+            : "탐험방을 만들지 못했어요. 다시 시도해주세요",
       );
     } finally {
       setIsLoading(false);
@@ -120,11 +127,6 @@ export default function ConditionScreen() {
                 tintColor={COLORS.textMain}
               />
               <Text style={styles.sectionTitle}>지역</Text>
-              <SymbolView
-                name={{ ios: "chevron.down", android: "keyboard_arrow_down", web: "keyboard_arrow_down" }}
-                size={moderateScale(20)}
-                tintColor={COLORS.textMain}
-              />
             </View>
 
             <TouchableOpacity

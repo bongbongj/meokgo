@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { SymbolView } from "expo-symbols";
+import LocationIcon from "../components/common/LocationIcon";
 import { router, useLocalSearchParams } from "expo-router";
 import { COLORS } from "../constants/colors";
 import { scale, verticalScale, moderateScale } from "../utils/responsive";
@@ -341,11 +342,7 @@ function ParticipantWaitingView({
         {roomDetail && (
           <View style={styles.summaryCard}>
             <View style={styles.summaryIcon}>
-              <SymbolView
-                name={{ ios: "mappin.circle.fill", android: "location_on", web: "location_on" }}
-                size={moderateScale(22)}
-                tintColor={COLORS.primary}
-              />
+              <LocationIcon size={moderateScale(22)} color={COLORS.primary} />
             </View>
             <View style={styles.summaryTextArea}>
               <Text style={styles.summaryTitle}>

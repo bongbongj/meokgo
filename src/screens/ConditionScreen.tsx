@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { SymbolView } from "expo-symbols";
+import LocationIcon from "../components/common/LocationIcon";
 import { router, useLocalSearchParams } from "expo-router";
 import { COLORS } from "../constants/colors";
 import { scale, verticalScale, moderateScale } from "../utils/responsive";
@@ -121,11 +122,7 @@ export default function ConditionScreen() {
           <View style={styles.body}>
             {/* 지역 */}
             <View style={styles.regionLabelRow}>
-              <SymbolView
-                name={{ ios: "mappin.circle.fill", android: "location_on", web: "location_on" }}
-                size={moderateScale(22)}
-                tintColor={COLORS.textMain}
-              />
+              <LocationIcon size={moderateScale(22)} color={COLORS.textMain} />
               <Text style={styles.sectionTitle}>지역</Text>
             </View>
 
@@ -134,11 +131,7 @@ export default function ConditionScreen() {
               activeOpacity={0.8}
               onPress={() => setIsSheetOpen(true)}
             >
-              <SymbolView
-                name={{ ios: "mappin.circle.fill", android: "location_on", web: "location_on" }}
-                size={moderateScale(24)}
-                tintColor={region ? COLORS.primary : "#C4C4C4"}
-              />
+              <LocationIcon size={moderateScale(24)} color={region ? COLORS.primary : "#C4C4C4"} />
               <Text
                 style={[styles.fieldText, !region && styles.placeholder]}
                 numberOfLines={1}

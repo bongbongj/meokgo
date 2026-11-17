@@ -5,38 +5,22 @@
 
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { SymbolView, type SymbolViewProps } from "expo-symbols";
 import { router } from "expo-router";
 import { COLORS } from "../constants/colors";
 import { scale, verticalScale, moderateScale } from "../utils/responsive";
+import TabIcon, { type TabIconName } from "./common/TabIcon";
 
-export type BottomTabKey = "home" | "explore" | "records";
+export type BottomTabKey = TabIconName;
 
-// 하단 탭 (아이콘 파일 전달 전까지 시스템 심볼 사용)
+// 하단 탭 (아이콘은 Figma 탭바 SVG — key가 곧 아이콘 이름)
 const TABS: {
   key: BottomTabKey;
   label: string;
-  icon: SymbolViewProps["name"];
   href: "/home" | "/condition" | "/records";
 }[] = [
-  {
-    key: "home",
-    label: "홈",
-    icon: { ios: "house", android: "home", web: "home" },
-    href: "/home",
-  },
-  {
-    key: "explore",
-    label: "탐험",
-    icon: { ios: "safari", android: "explore", web: "explore" },
-    href: "/condition",
-  },
-  {
-    key: "records",
-    label: "내 기록",
-    icon: { ios: "person", android: "person", web: "person" },
-    href: "/records",
-  },
+  { key: "home", label: "홈", href: "/home" },
+  { key: "explore", label: "탐험", href: "/condition" },
+  { key: "records", label: "내 기록", href: "/records" },
 ];
 
 interface BottomTabBarProps {
@@ -63,7 +47,7 @@ export default function BottomTabBar({ active, activeNavigable = false }: Bottom
               else if (activeNavigable) router.replace(tab.href);
             }}
           >
-            <SymbolView name={tab.icon} size={moderateScale(24)} tintColor={color} />
+            <TabIcon name={tab.key} size={moderateScale(28)} color={color} />
             <Text style={[styles.tabText, { color }, isActive && styles.tabTextActive]}>
               {tab.label}
             </Text>

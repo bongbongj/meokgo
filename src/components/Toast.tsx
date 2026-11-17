@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Animated, StyleSheet, Text, View } from "react-native";
 import { COLORS } from "../constants/colors";
 import { scale, verticalScale, moderateScale } from "../utils/responsive";
+import Icon from "./common/Icon";
 
 const TOAST_DURATION = 2000; // 토스트 노출 2초
 
@@ -57,7 +58,7 @@ export function useToast() {
     >
       {options.icon === "check" && (
         <View style={styles.checkCircle}>
-          <View style={styles.checkMark} />
+          <Icon name="checkToast" size={scale(22)} color={COLORS.background} />
         </View>
       )}
       <Text style={[styles.toastText, options.icon && styles.toastTextBold]}>
@@ -98,15 +99,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginRight: scale(8),
-  },
-  checkMark: {
-    width: scale(9),
-    height: scale(5),
-    borderLeftWidth: 2,
-    borderBottomWidth: 2,
-    borderColor: COLORS.background,
-    transform: [{ rotate: "-45deg" }],
-    marginTop: -2,
   },
   toastText: {
     color: COLORS.background,

@@ -3,7 +3,7 @@
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { SymbolView } from "expo-symbols";
+import Icon from "../components/common/Icon";
 import { router, useLocalSearchParams } from "expo-router";
 import { COLORS } from "../constants/colors";
 import { scale, verticalScale, moderateScale } from "../utils/responsive";
@@ -49,11 +49,7 @@ export default function JoinClosedScreen() {
 
         <View style={styles.content}>
           <View style={styles.iconCircle}>
-            <SymbolView
-              name={{ ios: "lock", android: "lock", web: "lock" }}
-              size={moderateScale(30)}
-              tintColor={COLORS.primary}
-            />
+            <Icon name="lock" size={moderateScale(34)} color={COLORS.primary} />
           </View>
           <Text style={styles.title}>{message.title}</Text>
           <Text style={styles.body}>{message.body}</Text>

@@ -13,7 +13,7 @@ import {
   View,
   Platform,
 } from "react-native";
-import { SymbolView } from "expo-symbols";
+import Icon from "./common/Icon";
 import { COLORS } from "../constants/colors";
 import { scale, verticalScale, moderateScale } from "../utils/responsive";
 import {
@@ -114,6 +114,7 @@ export default function RegionSelectSheet({
       <Pressable style={styles.backdrop} onPress={onClose} />
       <View style={styles.sheet}>
         <ScrollView
+          contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
@@ -122,11 +123,7 @@ export default function RegionSelectSheet({
 
             {/* 지역 검색 */}
             <View style={styles.searchField}>
-              <SymbolView
-                name={{ ios: "magnifyingglass", android: "search", web: "search" }}
-                size={moderateScale(22)}
-                tintColor={COLORS.textMuted}
-              />
+              <Icon name="search" size={moderateScale(19)} color={COLORS.textMuted} />
               <TextInput
                 style={styles.searchInput}
                 placeholder="지역 검색"
@@ -182,14 +179,10 @@ export default function RegionSelectSheet({
                     <Text style={[styles.cityText, isOpen && styles.cityTextOpen]}>
                       {city.region_name}
                     </Text>
-                    <SymbolView
-                      name={
-                        isOpen
-                          ? { ios: "chevron.up", android: "keyboard_arrow_up", web: "keyboard_arrow_up" }
-                          : { ios: "chevron.down", android: "keyboard_arrow_down", web: "keyboard_arrow_down" }
-                      }
-                      size={moderateScale(18)}
-                      tintColor={isOpen ? COLORS.primary : COLORS.textMuted}
+                    <Icon
+                      name={isOpen ? "chevronUp" : "chevronDown"}
+                      size={moderateScale(16)}
+                      color={isOpen ? COLORS.primary : COLORS.textMuted}
                     />
                   </TouchableOpacity>
                 );
@@ -220,19 +213,11 @@ export default function RegionSelectSheet({
                     </Text>
                     {isSelected && (
                       <View style={styles.checkCircle}>
-                        <SymbolView
-                          name={{ ios: "checkmark", android: "check", web: "check" }}
-                          size={moderateScale(14)}
-                          tintColor={COLORS.background}
-                        />
+                        <Icon name="check" size={moderateScale(12)} color={COLORS.background} />
                       </View>
                     )}
                   </View>
-                  <SymbolView
-                    name={{ ios: "chevron.right", android: "chevron_right", web: "chevron_right" }}
-                    size={moderateScale(18)}
-                    tintColor={COLORS.textMuted}
-                  />
+                  <Icon name="chevronRight" size={moderateScale(16)} color={COLORS.textMuted} />
                 </TouchableOpacity>
               );
             })}
@@ -253,14 +238,19 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+    // 화면이 넓어도 좌우를 꽉 채운다 (높이는 그대로 77%)
     height: "77%",
-    maxWidth: 393,
-    width: "100%",
-    alignSelf: "center",
     backgroundColor: COLORS.background,
     borderTopLeftRadius: scale(28),
     borderTopRightRadius: scale(28),
     overflow: "hidden",
+  },
+  // 시트는 좌우를 꽉 채우고, 안쪽 내용은 디자인 너비(393)로 가운데 모은다
+  // scale(393): 웹은 393으로 고정, 휴대폰은 화면 너비 — 안쪽 크기(scale 기준)와 맞춘다
+  content: {
+    width: "100%",
+    maxWidth: scale(393),
+    alignSelf: "center",
   },
   inner: {
     paddingHorizontal: scale(30),

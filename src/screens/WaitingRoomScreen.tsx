@@ -9,7 +9,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { SymbolView } from "expo-symbols";
+import Icon from "../components/common/Icon";
 import LocationIcon from "../components/common/LocationIcon";
 import { router, useLocalSearchParams } from "expo-router";
 import { COLORS } from "../constants/colors";
@@ -251,11 +251,7 @@ function WaitingView({
               onPress={() => shareInviteLink(status.invite_url)}
             >
               <View style={styles.inviteCircle}>
-                <SymbolView
-                  name={{ ios: "plus", android: "add", web: "add" }}
-                  size={moderateScale(26)}
-                  tintColor={COLORS.textMuted}
-                />
+                <Icon name="plus" size={moderateScale(20)} color={COLORS.textMuted} />
               </View>
               <Text style={styles.inviteText}>초대하기</Text>
             </TouchableOpacity>
@@ -408,11 +404,7 @@ function TakeOverView({
       >
         <View style={styles.noticeArea}>
           <View style={styles.iconCircle}>
-            <SymbolView
-              name={{ ios: "clock", android: "schedule", web: "schedule" }}
-              size={moderateScale(32)}
-              tintColor={COLORS.primary}
-            />
+            <Icon name="clock" size={moderateScale(34)} color={COLORS.primary} />
           </View>
           <Text style={styles.noticeTitle}>방장이 접속하지 않고 있어요</Text>
           <Text style={styles.noticeBody}>

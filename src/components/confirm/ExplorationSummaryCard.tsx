@@ -2,9 +2,10 @@
 // 탐험 요약 카드 — 지역명 / 대표 참여자 외 N명 / 날짜 (디자인: 353 x 76, radius 16)
 
 import React from "react";
-import { Image, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { COLORS } from "../../constants/colors";
 import { moderateScale, scale, verticalScale } from "../../utils/responsive";
+import Icon from "../common/Icon";
 
 interface ExplorationSummaryCardProps {
   regionName: string;
@@ -25,11 +26,7 @@ export default function ExplorationSummaryCard({
   return (
     <View style={styles.card}>
       <View style={styles.iconCircle}>
-        <Image
-          source={require("../../../assets/images/icon-pin.png")}
-          style={styles.icon}
-          resizeMode="contain"
-        />
+        <Icon name="pinDot" size={scale(18)} color={COLORS.primary} />
       </View>
       <View style={styles.texts}>
         <Text style={styles.region}>{regionName} 탐험</Text>
@@ -60,7 +57,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginRight: scale(12),
   },
-  icon: { width: scale(18), height: scale(18) },
   texts: { flex: 1 },
   region: {
     fontSize: moderateScale(15),

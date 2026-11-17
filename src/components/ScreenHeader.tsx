@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { SymbolView } from "expo-symbols";
+import Icon from "./common/Icon";
 import { COLORS } from "../constants/colors";
 import { scale, verticalScale, moderateScale } from "../utils/responsive";
 
@@ -52,15 +52,7 @@ export function NavHeader({
           hitSlop={12}
           accessibilityLabel="뒤로가기"
         >
-          <SymbolView
-            name={{
-              ios: "chevron.left",
-              android: "arrow_back_ios_new",
-              web: "arrow_back_ios_new",
-            }}
-            size={moderateScale(22)}
-            tintColor={COLORS.textMain}
-          />
+          <Icon name="back" size={moderateScale(24)} color={COLORS.textMain} />
         </TouchableOpacity>
       )}
       <Text style={styles.navTitle}>{title}</Text>

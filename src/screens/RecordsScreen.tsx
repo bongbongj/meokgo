@@ -15,7 +15,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { SymbolView } from "expo-symbols";
+import Icon from "../components/common/Icon";
 import { router, useFocusEffect } from "expo-router";
 import { COLORS } from "../constants/colors";
 import { moderateScale, scale, verticalScale } from "../utils/responsive";
@@ -161,11 +161,7 @@ export default function RecordsScreen() {
               accessibilityRole="button"
               accessibilityLabel="닉네임 변경"
             >
-              <SymbolView
-                name={{ ios: "pencil", android: "edit", web: "edit" }}
-                size={moderateScale(24)}
-                tintColor={COLORS.primary}
-              />
+              <Icon name="pencil" size={moderateScale(23)} color={COLORS.primary} />
             </TouchableOpacity>
           </View>
 
@@ -217,11 +213,7 @@ export default function RecordsScreen() {
                     <Text style={styles.newSub}>지역을 고르고 퀘스트를 함께 선택해요</Text>
                   </View>
                   <View style={styles.arrowCircle}>
-                    <SymbolView
-                      name={{ ios: "arrow.right", android: "arrow_forward", web: "arrow_forward" }}
-                      size={moderateScale(20)}
-                      tintColor={COLORS.background}
-                    />
+                    <Icon name="arrowRight" size={moderateScale(20)} color={COLORS.background} />
                   </View>
                 </TouchableOpacity>
               </>

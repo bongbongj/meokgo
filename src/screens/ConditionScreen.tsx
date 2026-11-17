@@ -13,7 +13,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { SymbolView } from "expo-symbols";
+import Icon from "../components/common/Icon";
 import LocationIcon from "../components/common/LocationIcon";
 import { router, useLocalSearchParams } from "expo-router";
 import { COLORS } from "../constants/colors";
@@ -131,7 +131,7 @@ export default function ConditionScreen() {
               activeOpacity={0.8}
               onPress={() => setIsSheetOpen(true)}
             >
-              <LocationIcon size={moderateScale(24)} color={region ? COLORS.primary : "#C4C4C4"} />
+              <Icon name="locationField" size={moderateScale(21)} color={region ? COLORS.primary : "#C4C4C4"} />
               <Text
                 style={[styles.fieldText, !region && styles.placeholder]}
                 numberOfLines={1}
@@ -220,11 +220,7 @@ export default function ConditionScreen() {
               피하고싶은 음식
             </Text>
             <View style={styles.field}>
-              <SymbolView
-                name={{ ios: "fork.knife", android: "restaurant", web: "restaurant" }}
-                size={moderateScale(22)}
-                tintColor="#C4C4C4"
-              />
+              <Icon name="forkSpoon" size={moderateScale(21)} color="#C4C4C4" />
               <TextInput
                 style={styles.input}
                 placeholder="없다면 건너뛰어도 돼요"

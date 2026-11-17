@@ -13,7 +13,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { SymbolView } from "expo-symbols";
+import Icon from "../components/common/Icon";
 import { router, useLocalSearchParams } from "expo-router";
 import { COLORS } from "../constants/colors";
 import { scale, verticalScale, moderateScale } from "../utils/responsive";
@@ -213,11 +213,7 @@ export default function JoinScreen() {
 
           {isDuplicate && (
             <View style={styles.errorRow}>
-              <SymbolView
-                name={{ ios: "exclamationmark.circle", android: "error", web: "error" }}
-                size={moderateScale(16)}
-                tintColor={COLORS.primary}
-              />
+              <Icon name="alertCircle" size={moderateScale(16)} color={COLORS.primary} />
               <Text style={styles.errorText}>
                 이미 사용 중인 닉네임이에요. 다른 닉네임을 입력해주세요
               </Text>

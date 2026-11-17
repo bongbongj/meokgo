@@ -5,6 +5,7 @@ import React from "react";
 import { StyleSheet, View } from "react-native";
 import { COLORS } from "../../constants/colors";
 import { scale } from "../../utils/responsive";
+import Icon from "./Icon";
 
 interface CheckCircleProps {
   checked: boolean;
@@ -23,13 +24,8 @@ export default function CheckCircle({ checked, size = 26 }: CheckCircleProps) {
       ]}
     >
       {checked && (
-        // 테두리 두 면을 회전시켜 체크 표시를 만든다
-        <View
-          style={[
-            styles.checkMark,
-            { width: diameter * 0.38, height: diameter * 0.22 },
-          ]}
-        />
+        // Figma 09_퀘스트 투표: 26px 원 안에 14px 체크 — 원 크기에 맞춰 같은 비율로
+        <Icon name="checkBold" size={(diameter * 14) / 26} color={COLORS.background} />
       )}
     </View>
   );
@@ -42,12 +38,5 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     borderWidth: 1.5,
     borderColor: COLORS.emptyCircleBorder,
-  },
-  checkMark: {
-    borderLeftWidth: 2,
-    borderBottomWidth: 2,
-    borderColor: COLORS.background,
-    transform: [{ rotate: "-45deg" }],
-    marginTop: -2,
   },
 });

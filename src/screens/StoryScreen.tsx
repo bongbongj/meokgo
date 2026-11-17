@@ -18,7 +18,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { SymbolView } from "expo-symbols";
+import Icon from "../components/common/Icon";
 import * as ImagePicker from "expo-image-picker";
 import { router, useFocusEffect } from "expo-router";
 import { COLORS } from "../constants/colors";
@@ -233,11 +233,7 @@ export default function StoryScreen({ recordId }: StoryScreenProps) {
                       <PhotoImage url={slot.photo_url} style={styles.slot} />
                     ) : (
                       <View style={[styles.slot, styles.slotEmpty]}>
-                        <SymbolView
-                          name={{ ios: "plus", android: "add", web: "add" }}
-                          size={moderateScale(26)}
-                          tintColor={COLORS.textMuted}
-                        />
+                        <Icon name="plus" size={moderateScale(26)} color={COLORS.textMuted} />
                       </View>
                     )}
                   </TouchableOpacity>
@@ -249,11 +245,7 @@ export default function StoryScreen({ recordId }: StoryScreenProps) {
                       accessibilityRole="button"
                       accessibilityLabel={`${SLOT_LABELS[index]} 비우기`}
                     >
-                      <SymbolView
-                        name={{ ios: "xmark", android: "close", web: "close" }}
-                        size={moderateScale(12)}
-                        tintColor={COLORS.background}
-                      />
+                      <Icon name="close" size={moderateScale(12)} color={COLORS.background} />
                     </TouchableOpacity>
                   )}
                   <Text style={styles.slotLabel}>{SLOT_LABELS[index]}</Text>

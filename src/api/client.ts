@@ -12,6 +12,16 @@ export const SERVER_URL = (
 ).replace(/\/$/, "");
 export const API_BASE_URL = `${SERVER_URL}/api/v1`;
 
+/**
+ * 서버가 내려준 이미지 주소를 이 기기에서 열 수 있는 주소로 바꾼다
+ * - 로컬 BE는 지역 대표 이미지를 http://localhost:8080/... 으로 내려준다
+ *   (BE는 http 주소를 localhost만 허용해서 PC IP로 바꿀 수 없음)
+ * - 폰(Expo Go)에서 localhost는 폰 자신이라 열리지 않으므로, 앞부분을 .env의 BE 주소로 바꾼다
+ * - 그 외 주소(https, 기기 사진 등)는 그대로 둔다
+ */
+export const toReachableUrl = (url: string): string =>
+  url.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?(?=\/|$)/i, SERVER_URL);
+
 const TIMEOUT_MS = 10000;
 // 사진 업로드는 느린 연결에서 여러 장을 보내므로 더 오래 기다린다
 const UPLOAD_TIMEOUT_MS = 60000;

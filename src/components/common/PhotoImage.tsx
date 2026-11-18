@@ -1,11 +1,11 @@
 // src/components/common/PhotoImage.tsx
 // 기록 사진 · 지역 대표 이미지 표시
 // - 서버 사진(/api/v1/...로 시작하는 상대 경로)은 서버 주소를 붙이고 X-Device-Key 헤더와 함께 요청한다
-// - 기기 사진(file:// 등)과 절대 주소는 그대로 표시
+// - 기기 사진(file:// 등)과 절대 주소는 그대로 표시 (localhost 주소만 .env의 BE 주소로 바꿈 — toReachableUrl)
 
 import { Image, ImageProps } from "expo-image";
 import React, { useEffect, useState } from "react";
-import { SERVER_URL } from "../../api/client";
+import { SERVER_URL, toReachableUrl } from "../../api/client";
 import { getDeviceKey } from "../../api/deviceKey";
 
 interface PhotoImageProps extends Omit<ImageProps, "source"> {
@@ -30,7 +30,7 @@ export default function PhotoImage({ url, ...props }: PhotoImageProps) {
   }, [fromServer]);
 
   if (!fromServer) {
-    return <Image {...props} source={{ uri: url }} />;
+    return <Image {...props} source={{ uri: toReachableUrl(url) }} />;
   }
 
   // 개인 사진은 서버가 캐시 금지로 내려주므로 디스크에 남기지 않는다

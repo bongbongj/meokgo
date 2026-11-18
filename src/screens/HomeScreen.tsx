@@ -15,6 +15,7 @@ import { router } from "expo-router";
 import { COLORS } from "../constants/colors";
 import { scale, verticalScale, moderateScale } from "../utils/responsive";
 import { ActiveRoom, fetchHomeData, HomeData } from "../api/homeApi";
+import { toReachableUrl } from "../api/client";
 import { formatCompactDotDate } from "../utils/date";
 import { activeRoomHref } from "../utils/roomNavigation";
 import BottomTabBar from "../components/BottomTabBar";
@@ -182,7 +183,7 @@ export default function HomeScreen() {
                     {/* 지역 대표 이미지 (없으면 회색 기본 원) */}
                     {region.region_image_url ? (
                       <Image
-                        source={{ uri: region.region_image_url }}
+                        source={{ uri: toReachableUrl(region.region_image_url) }}
                         style={styles.popularCircle}
                         resizeMode="cover"
                       />
@@ -205,7 +206,7 @@ export default function HomeScreen() {
                     {/* 기록 썸네일 (없으면 회색 기본 이미지) */}
                     {record.thumbnail_url ? (
                       <Image
-                        source={{ uri: record.thumbnail_url }}
+                        source={{ uri: toReachableUrl(record.thumbnail_url) }}
                         style={styles.recentImageDummy}
                         resizeMode="cover"
                       />

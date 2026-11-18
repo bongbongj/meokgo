@@ -205,6 +205,7 @@ export default function HomeScreen() {
                         params: {
                           regionId: String(region.region_id),
                           regionName: region.region_name,
+                          regionImageUrl: region.region_image_url ?? "",
                         },
                       })
                     }

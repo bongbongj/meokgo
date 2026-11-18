@@ -1,6 +1,6 @@
 // src/screens/RecordDetailScreen.tsx
 // 15. 탐험 기록
-// - 대표 사진(첫 번째 사진), 지역명 · 날짜 · 대표 참여자 외 N명, 그날의 사진(나머지), 완료한 퀘스트
+// - 대표 사진(첫 번째 사진, 사진을 올리기 전에는 지역 대표 이미지), 지역명 · 날짜 · 대표 참여자 외 N명, 그날의 사진(나머지), 완료한 퀘스트
 // - 사진을 누르면 원본 크게 보기 (화면 탭 / 뒤로가기로 닫기)
 // - 기록 남기기 → 16 스토리 템플릿 선택 (디자인 시안에 버튼 위치가 없어 목록 아래에 둠 — README 컨펌 필요 사항)
 // - 진입: 11 내 기록 카드, 18 탐험 종료의 기록 보러가기, 02 홈 최근 탐험 카드
@@ -41,7 +41,7 @@ export default function RecordDetailScreen({ recordId }: RecordDetailScreenProps
 
   useEffect(() => {
     let cancelled = false;
-    fetchRecordDetail(recordId).then(
+    fetchRecordDetail(recordId, { withRegionImage: true }).then(
       (result) => {
         if (!cancelled) setRecord(result);
       },
@@ -89,6 +89,13 @@ export default function RecordDetailScreen({ recordId }: RecordDetailScreenProps
                 >
                   <PhotoImage url={cover.photo_url} style={styles.cover} />
                 </TouchableOpacity>
+              ) : record.region_image_url ? (
+                // 사진을 올리기 전(기록 남기기 전)에는 지역 대표 이미지
+                <PhotoImage
+                  url={record.region_image_url}
+                  style={styles.cover}
+                  accessibilityLabel={`${record.region_name} 대표 이미지`}
+                />
               ) : (
                 <View style={[styles.cover, styles.coverEmpty]} />
               )}

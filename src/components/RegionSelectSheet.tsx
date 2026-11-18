@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react";
 import {
-  Image,
   Modal,
   Pressable,
   ScrollView,
@@ -14,6 +13,7 @@ import {
   Platform,
 } from "react-native";
 import Icon from "./common/Icon";
+import PhotoImage from "./common/PhotoImage";
 import { COLORS } from "../constants/colors";
 import { scale, verticalScale, moderateScale } from "../utils/responsive";
 import {
@@ -26,6 +26,7 @@ import {
 export interface SelectedRegion {
   region_id: number;
   region_name: string;
+  region_image_url?: string | null; // 지역 대표 이미지 (조건 선택 화면의 사진 카드)
 }
 
 /**
@@ -148,10 +149,9 @@ export default function RegionSelectSheet({
                     >
                       {/* 지역 대표 이미지 (없으면 회색 기본 원) */}
                       {region.region_image_url ? (
-                        <Image
-                          source={{ uri: region.region_image_url }}
+                        <PhotoImage
+                          url={region.region_image_url}
                           style={styles.recentCircle}
-                          resizeMode="cover"
                         />
                       ) : (
                         <View style={styles.recentCircle} />

@@ -20,6 +20,21 @@ export interface RecentRegion {
   region_image_url: string | null; // 지역 대표 이미지
 }
 
+// 지역 대표 이미지 더미 (recordApi의 mock:// 사진 키 재사용, 기록 지역명도 함께 등록)
+const MOCK_REGION_IMAGES: Record<string, string> = {
+  "성수·서울숲": "mock://seongsu",
+  "망원·합정": "mock://mangwon",
+  "을지로·종로": "mock://euljiro-street",
+  "문래·영등포": "mock://mullae",
+  행궁동: "mock://haenggung",
+  성수동: "mock://seongsu",
+  망원동: "mock://mangwon",
+  을지로: "mock://euljiro-street",
+  문래동: "mock://mullae",
+};
+
+const mockImageOf = (name: string) => MOCK_REGION_IMAGES[name] ?? null;
+
 // 시·도 카테고리 + 세부 지역 더미 데이터
 const CITIES: [number, string, string[]][] = [
   [
@@ -58,15 +73,15 @@ const MOCK_REGIONS: Region[] = CITIES.flatMap(([cityId, cityName, districts]) =>
     region_id: cityId * 100 + idx + 1,
     region_name: name,
     parent_region_id: cityId,
-    region_image_url: null,
+    region_image_url: mockImageOf(name),
   })),
 ]);
 
 const MOCK_RECENT_REGIONS: RecentRegion[] = [
-  { region_id: 201, region_name: "행궁동", selected_at: "2026-10-06T01:00:00", region_image_url: null },
-  { region_id: 101, region_name: "성수동", selected_at: "2026-10-05T01:00:00", region_image_url: null },
-  { region_id: 104, region_name: "을지로", selected_at: "2026-10-04T01:00:00", region_image_url: null },
-  { region_id: 103, region_name: "망원동", selected_at: "2026-10-03T01:00:00", region_image_url: null },
+  { region_id: 201, region_name: "행궁동", selected_at: "2026-10-06T01:00:00", region_image_url: mockImageOf("행궁동") },
+  { region_id: 101, region_name: "성수동", selected_at: "2026-10-05T01:00:00", region_image_url: mockImageOf("성수동") },
+  { region_id: 104, region_name: "을지로", selected_at: "2026-10-04T01:00:00", region_image_url: mockImageOf("을지로") },
+  { region_id: 103, region_name: "망원동", selected_at: "2026-10-03T01:00:00", region_image_url: mockImageOf("망원동") },
 ];
 
 /**
@@ -103,6 +118,24 @@ export const fetchRegions = async (params: {
   }
 
   return mockResponse({ success: true, data: { regions } }, 150);
+};
+
+/**
+ * 지역명 → 지역 대표 이미지 주소
+ * - 기록 응답에는 지역 이미지가 없어서 전체 지역 목록(GET /api/v1/regions)으로 찾는다
+ * - 이미지가 등록된 지역만 담는다
+ * - TODO: BE 기록 목록·상세 응답에 region_image_url이 생기면 그 값을 쓴다
+ */
+export const fetchRegionImageUrls = async (): Promise<Map<string, string>> => {
+  if (USE_MOCK.region) {
+    return new Map(Object.entries(MOCK_REGION_IMAGES));
+  }
+  const res = await fetchRegions({});
+  const images = new Map<string, string>();
+  for (const region of res.data.regions) {
+    if (region.region_image_url) images.set(region.region_name, region.region_image_url);
+  }
+  return images;
 };
 
 /**

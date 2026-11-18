@@ -7,6 +7,7 @@ import { mockRecordIdOf } from "./explorationApi";
 import { fetchFinalQuests } from "./finalQuestApi";
 import { mockResolve, USE_MOCK } from "./mock";
 import { getFinishedMockRoomIds } from "./mockRooms";
+import { fetchRegionImageUrls } from "./regionApi";
 import type { RetentionStage } from "./types";
 
 export interface UserStatistics {
@@ -48,6 +49,8 @@ export interface RecordDetail {
   participants: string[];
   completed_quests: { quest_title: string; completed: boolean }[];
   photos: RecordPhoto[];
+  // API명세서에 없음 — 사진을 올리기 전 대표 사진 자리에 보여줄 지역 대표 이미지 (FE가 지역 목록으로 채움)
+  region_image_url?: string | null;
 }
 
 const isMocked = () => USE_MOCK.record;
@@ -198,17 +201,40 @@ export const fetchMyStatistics = async (): Promise<UserStatistics> => {
   return api.get<UserStatistics>("/users/me/statistics");
 };
 
+/** 지역 대표 이미지 조회 — 실패해도 화면은 회색 기본 이미지로 보여주면 되므로 빈 결과 */
+const loadRegionImages = () =>
+  fetchRegionImageUrls().catch(() => new Map<string, string>());
+
 /** 탐험 기록 목록 (최신순) */
 export const fetchMyRecords = async (page = 0, size = 20): Promise<RecordList> => {
-  if (isMocked()) return mockResolve({ records: mockRecordList(), has_next: false });
-  const list = await api.get<RecordList>(`/users/me/records?page=${page}&size=${size}`);
-  return { ...list, records: await Promise.all(list.records.map(withThumbnail)) };
+  const list = isMocked()
+    ? await mockResolve({ records: mockRecordList(), has_next: false })
+    : await api.get<RecordList>(`/users/me/records?page=${page}&size=${size}`);
+  const records = isMocked()
+    ? list.records
+    : await Promise.all(list.records.map(withThumbnail));
+  return { ...list, records: await withRegionThumbnail(records) };
+};
+
+/**
+ * 사진을 아직 올리지 않은 기록은 지역 대표 이미지를 썸네일로 쓴다
+ * - 올린 사진이 있으면 그 사진이 우선 (withThumbnail에서 채움)
+ * - 지역 목록은 사진 없는 기록이 있을 때만 한 번 조회한다
+ */
+const withRegionThumbnail = async (records: RecordSummary[]): Promise<RecordSummary[]> => {
+  if (records.every((record) => record.thumbnail_url)) return records;
+  const images = await loadRegionImages();
+  return records.map((record) =>
+    record.thumbnail_url
+      ? record
+      : { ...record, thumbnail_url: images.get(record.region_name) ?? null },
+  );
 };
 
 /**
  * 기록 카드 썸네일 — 15 탐험 기록의 대표 사진(첫 번째 사진)과 같게
  * - BE 목록 응답에 thumbnail_url이 없어 기록 상세로 채운다 (기록 수만큼 요청이 늘어난다)
- * - 상세 조회에 실패하거나 사진이 없으면 회색 기본 이미지
+ * - 상세 조회에 실패하거나 사진이 없으면 null → withRegionThumbnail에서 지역 대표 이미지로 채움
  * - TODO: BE가 목록에 thumbnail_url을 주면 제거 (README 컨펌 필요 사항 C-14)
  */
 const withThumbnail = async (record: RecordSummary): Promise<RecordSummary> => {
@@ -221,8 +247,19 @@ const withThumbnail = async (record: RecordSummary): Promise<RecordSummary> => {
   }
 };
 
-/** 탐험 기록 상세 — 지역, 날짜, 참여자, 사진, 완료 퀘스트 */
-export const fetchRecordDetail = async (recordId: number): Promise<RecordDetail> => {
-  if (isMocked()) return mockResolve(await mockRecordDetail(recordId));
-  return api.get<RecordDetail>(`/records/${recordId}`);
+/**
+ * 탐험 기록 상세 — 지역, 날짜, 참여자, 사진, 완료 퀘스트
+ * - withRegionImage: 사진을 아직 올리지 않았으면 region_image_url에 지역 대표 이미지를 채운다
+ *   (15 탐험 기록의 대표 사진 자리용, 다른 화면은 지역 목록을 따로 조회하지 않게 끈다)
+ */
+export const fetchRecordDetail = async (
+  recordId: number,
+  { withRegionImage = false }: { withRegionImage?: boolean } = {},
+): Promise<RecordDetail> => {
+  const detail = isMocked()
+    ? await mockResolve(await mockRecordDetail(recordId))
+    : await api.get<RecordDetail>(`/records/${recordId}`);
+  if (!withRegionImage || detail.photos.length > 0) return detail;
+  const images = await loadRegionImages();
+  return { ...detail, region_image_url: images.get(detail.region_name) ?? null };
 };

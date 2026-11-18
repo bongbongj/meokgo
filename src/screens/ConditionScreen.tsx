@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react";
 import {
-  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -15,6 +14,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import Icon from "../components/common/Icon";
 import LocationIcon from "../components/common/LocationIcon";
+import PhotoImage from "../components/common/PhotoImage";
 import { router, useLocalSearchParams } from "expo-router";
 import { COLORS } from "../constants/colors";
 import { scale, verticalScale, moderateScale } from "../utils/responsive";
@@ -35,17 +35,24 @@ import {
  * 03. 오늘의 탐험 (조건 선택)
  * - 지역은 반드시 1개 선택해야 진행 가능
  * - 피하고 싶은 음식은 건너뛸 수 있음
+ * - 고른 지역에 대표 이미지가 있으면 '최근 선택' 자리에 사진 카드를 보여준다
+ *   (같은 높이로 자리를 바꿔서 아래 입력칸·버튼이 밀려 스크롤이 생기지 않게 한다)
  */
 export default function ConditionScreen() {
   // 홈의 인기 지역에서 진입하면 해당 지역이 미리 선택됨
   const params = useLocalSearchParams<{
     regionId?: string;
     regionName?: string;
+    regionImageUrl?: string;
   }>();
 
   const [region, setRegion] = useState<SelectedRegion | null>(
     params.regionId && params.regionName
-      ? { region_id: Number(params.regionId), region_name: params.regionName }
+      ? {
+          region_id: Number(params.regionId),
+          region_name: params.regionName,
+          region_image_url: params.regionImageUrl || null,
+        }
       : null,
   );
   const [schedule, setSchedule] = useState<ScheduleType>("MEAL");
@@ -54,6 +61,8 @@ export default function ConditionScreen() {
   const [recentRegions, setRecentRegions] = useState<RecentRegion[]>([]);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  // '최근 선택' 영역의 실제 높이 — 사진 카드를 같은 높이로 맞춰 아래 내용이 밀리지 않게 한다
+  const [recentSlotHeight, setRecentSlotHeight] = useState<number | null>(null);
   const { showToast, toast } = useToast();
 
   useEffect(() => {
@@ -140,9 +149,31 @@ export default function ConditionScreen() {
               </Text>
             </TouchableOpacity>
 
-            {/* 최근 선택 */}
-            {recentRegions.length > 0 && (
-              <>
+            {/* 고른 지역의 대표 사진 (누르면 지역 다시 고르기) — 없으면 최근 선택 */}
+            {region?.region_image_url ? (
+              <TouchableOpacity
+                style={[
+                  styles.regionCard,
+                  recentSlotHeight !== null && {
+                    height: recentSlotHeight - styles.regionCard.marginTop,
+                  },
+                ]}
+                activeOpacity={0.9}
+                onPress={() => setIsSheetOpen(true)}
+                accessibilityRole="button"
+                accessibilityLabel={`${region.region_name} 대표 사진, 눌러서 지역 바꾸기`}
+              >
+                <PhotoImage url={region.region_image_url} style={styles.regionCardImage} />
+                <View style={styles.regionCardLabel}>
+                  <Text style={styles.regionCardText} numberOfLines={1}>
+                    {region.region_name}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ) : recentRegions.length > 0 && (
+              <View
+                onLayout={(e) => setRecentSlotHeight(e.nativeEvent.layout.height)}
+              >
                 <Text style={styles.recentLabel}>최근 선택</Text>
                 <View style={styles.recentRow}>
                   {recentRegions.map((recent) => {
@@ -156,13 +187,12 @@ export default function ConditionScreen() {
                       >
                         {/* 지역 대표 이미지 (없으면 회색 기본 원) */}
                         {recent.region_image_url ? (
-                          <Image
-                            source={{ uri: recent.region_image_url }}
+                          <PhotoImage
+                            url={recent.region_image_url}
                             style={[
                               styles.recentCircle,
                               isSelected && styles.recentCircleSelected,
                             ]}
-                            resizeMode="cover"
                           />
                         ) : (
                           <View
@@ -184,7 +214,7 @@ export default function ConditionScreen() {
                     );
                   })}
                 </View>
-              </>
+              </View>
             )}
 
             {/* 일정 */}
@@ -337,6 +367,31 @@ const styles = StyleSheet.create({
     color: COLORS.textMain,
     paddingVertical: 0,
     ...(Platform.OS === "web" ? ({ outlineStyle: "none" } as any) : {}),
+  },
+
+  // 최근 선택 영역(라벨 + 원 + 지역명)과 같은 높이 — 실제 높이를 재기 전에 쓰는 기본값
+  regionCard: {
+    marginTop: verticalScale(16),
+    height: verticalScale(34) + scale(65) + moderateScale(40),
+    borderRadius: scale(14),
+    overflow: "hidden",
+    backgroundColor: "#ddd",
+  },
+  regionCardImage: { width: "100%", height: "100%" },
+  regionCardLabel: {
+    position: "absolute",
+    left: scale(12),
+    bottom: verticalScale(10),
+    maxWidth: "80%",
+    paddingHorizontal: scale(10),
+    paddingVertical: verticalScale(4),
+    borderRadius: 999,
+    backgroundColor: "rgba(0, 0, 0, 0.45)",
+  },
+  regionCardText: {
+    fontSize: moderateScale(14),
+    fontWeight: "bold",
+    color: COLORS.background,
   },
 
   recentLabel: {

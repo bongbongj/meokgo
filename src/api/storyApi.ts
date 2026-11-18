@@ -1,7 +1,7 @@
 // src/api/storyApi.ts
 // FE2 — Story 템플릿, 기록 사진 업로드 (API명세서 13장)
 // - 기록 이미지는 앱에서 템플릿을 그려 캡처한다 (17 기록 미리보기). 서버 Story 이미지 생성
-//   (POST / GET /records/{id}/story-image)은 사용하지 않음 — README 컨펌 필요 사항
+//   (POST / GET /records/{id}/story-image)은 사용하지 않음 (README 결정 사항)
 
 import { File } from "expo-file-system";
 import { Platform } from "react-native";

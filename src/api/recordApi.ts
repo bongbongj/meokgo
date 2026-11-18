@@ -23,7 +23,7 @@ export interface RecordSummary {
   participant_count: number;
   completed_quest_count: number;
   created_at: string;
-  // API명세서에 없음 — 11 내 기록 카드의 대표 사진 (FE가 기록 상세·지역 목록으로 채움, README 컨펌 필요 사항 C-14)
+  // API명세서에 없음 — 11 내 기록 카드의 대표 사진 (FE가 기록 상세·지역 목록으로 채움)
   thumbnail_url?: string | null;
 }
 
@@ -82,7 +82,7 @@ const withRegionThumbnail = async (records: RecordSummary[]): Promise<RecordSumm
  * 기록 카드 썸네일 — 15 탐험 기록의 대표 사진(첫 번째 사진)과 같게
  * - BE 목록 응답에 thumbnail_url이 없어 기록 상세로 채운다 (기록 수만큼 요청이 늘어난다)
  * - 상세 조회에 실패하거나 사진이 없으면 null → withRegionThumbnail에서 지역 대표 이미지로 채움
- * - TODO: BE가 목록에 thumbnail_url을 주면 제거 (README 컨펌 필요 사항 C-14)
+ * - BE가 목록에 thumbnail_url을 주면 제거
  */
 const withThumbnail = async (record: RecordSummary): Promise<RecordSummary> => {
   if (record.thumbnail_url) return record;

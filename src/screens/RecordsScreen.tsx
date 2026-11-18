@@ -1,6 +1,6 @@
 // src/screens/RecordsScreen.tsx
 // 11. 내 기록 (12 닉네임 변경 시트 / 13 변경 완료 토스트 / 14 진행한 탐험이 없을 때)
-// - 프로필: 닉네임 첫 글자 원 + 닉네임 + 누적 탐험 / 퀘스트 수, 수정 아이콘 → 12 닉네임 변경 시트
+// - 프로필: 닉네임 첫 글자 원 + 닉네임(서버 bootstrap 값) + 누적 탐험 / 퀘스트 수, 수정 아이콘 → 12 닉네임 변경 시트
 // - 통계: 완료한 탐험 / 완료한 퀘스트 / 방문한 지역
 // - 탐험 기록 카드 → 15 탐험 기록, 기록이 없으면 14 안내 + 새로운 탐험 시작 → 03 조건 선택
 // - 화면에 들어올 때마다 다시 조회 (탐험 종료 후 돌아오면 새 기록이 보이도록)
@@ -27,7 +27,7 @@ import {
   RecordSummary,
   UserStatistics,
 } from "../api/recordApi";
-import { updateNickname } from "../api/userApi";
+import { fetchBootstrap, updateNickname } from "../api/userApi";
 import { LogoHeader } from "../components/ScreenHeader";
 import ProfileAvatar from "../components/ProfileAvatar";
 import BottomTabBar from "../components/BottomTabBar";
@@ -54,9 +54,17 @@ export default function RecordsScreen() {
   // 프로필 · 통계 · 기록 목록 조회 (반환값: 화면을 떠날 때 결과를 버리는 정리 함수)
   const load = useCallback(() => {
     let cancelled = false;
-    getStoredNickname().then((stored) => {
-      if (!cancelled && stored) setNickname(stored);
-    });
+    // 서버에 등록된 닉네임(bootstrap)을 쓰고, 조회에 실패하면 기기에 저장한 값으로 표시
+    fetchBootstrap()
+      .then(async ({ nickname: serverNickname }) => {
+        if (!serverNickname) return getStoredNickname();
+        await saveStoredNickname(serverNickname);
+        return serverNickname;
+      })
+      .catch(() => getStoredNickname())
+      .then((value) => {
+        if (!cancelled && value) setNickname(value);
+      });
     Promise.all([fetchMyStatistics(), fetchMyRecords()]).then(
       ([stats, list]) => {
         if (cancelled) return;

@@ -24,8 +24,7 @@ export interface ExplorationProgress {
   completed_quest_count: number;
   progress_rate: number;
   quests: ExplorationQuest[];
-  // API명세서에 없음 — 18 탐험 종료에서 내 기록 목록으로 찾아 채운다
-  // (BE에 추가 요청: README 컨펌 필요 사항 C-12)
+  // API명세서에 없음 — 18 탐험 종료에서 내 기록 목록으로 찾아 채운다 (BE 진행 조회에 record_id 없음)
   record_id?: number | null;
 }
 

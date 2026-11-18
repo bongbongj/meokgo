@@ -28,7 +28,7 @@ import PrimaryButton from "../components/common/PrimaryButton";
 /**
  * 방금 종료한 탐험의 기록 번호 (진행 조회에 record_id가 없어 내 기록 목록에서 찾는다)
  * - 기록은 종료 시점에 만들어지므로 같은 지역의 가장 최근 기록이 이번 탐험이다
- * - TODO: BE가 진행 조회에 record_id를 주면 제거 (README 컨펌 필요 사항 C-12)
+ * - BE가 진행 조회에 record_id를 주면 제거
  */
 const findRecordId = async (regionName: string): Promise<number | null> => {
   try {

@@ -12,7 +12,7 @@ import PhotoImage from "../common/PhotoImage";
 
 export type StoryLayout = "mood" | "collage";
 
-/** template_id → 레이아웃 (API에 레이아웃 구분 값이 없어 디자인 순서로 매핑 — README 컨펌 필요 사항) */
+/** template_id → 레이아웃 (API에 레이아웃 구분 값이 없어 디자인 순서로 매핑) */
 export const getStoryLayout = (templateId: number): StoryLayout =>
   templateId === 2 ? "collage" : "mood";
 

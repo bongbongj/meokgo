@@ -1,6 +1,7 @@
 // src/screens/QuestConfirmScreen.tsx
 // 10-1. 퀘스트 확정
 // - 방장: 화면 진입 시 미리보기 조회 → 동점 없으면 자동 확정, 동점 있으면 동점 후보 직접 선택 후 확정
+//   (동점일 때도 순위로 이미 확정된 퀘스트는 동점 후보 위에 함께 보여준다)
 // - 방장: 탐험 시작하기 → 10-2 퀘스트 진행
 // - 참가자: 방장이 확정할 때까지 대기 → 확정된 퀘스트 표시 → 방장이 탐험을 시작하면 자동 이동
 // - 방 상태를 화면 진입 시 1회 + 5초 간격으로 확인
@@ -26,6 +27,7 @@ import {
   fetchFinalQuestPreview,
   fetchFinalQuests,
   FinalQuest,
+  FinalQuestCandidate,
   submitTieBreak,
   TieGroup,
 } from "../api/finalQuestApi";
@@ -58,6 +60,8 @@ export default function QuestConfirmScreen({ roomId }: QuestConfirmScreenProps) 
   const [detail, setDetail] = useState<RoomDetail | null>(null);
   const [finalQuests, setFinalQuests] = useState<FinalQuest[] | null>(null);
   const [tieGroups, setTieGroups] = useState<TieGroup[] | null>(null);
+  // 동점일 때 순위로 이미 확정된 퀘스트 (예: 1 · 2위 확정 + 3위는 동점 후보에서 선택)
+  const [guaranteed, setGuaranteed] = useState<FinalQuestCandidate[]>([]);
   const [tieSelection, setTieSelection] = useState<Record<number, number[]>>({});
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -90,6 +94,7 @@ export default function QuestConfirmScreen({ roomId }: QuestConfirmScreenProps) 
         }
         const preview = await fetchFinalQuestPreview(roomId);
         if (preview.tie_break_required && preview.tie_groups?.length) {
+          setGuaranteed(preview.final_quest_candidates ?? []);
           setTieGroups(preview.tie_groups);
           return;
         }
@@ -198,7 +203,13 @@ export default function QuestConfirmScreen({ roomId }: QuestConfirmScreenProps) 
   const intro = finalQuests
     ? { title: "오늘의 퀘스트가 정해졌어요", sub: "친구들의 투표로 3개가 확정됐어요" }
     : isHost && tieGroups
-      ? { title: "동점인 퀘스트가 있어요", sub: `동점 후보 중 ${requiredTieCount}개를 골라주세요` }
+      ? {
+          title: "동점인 퀘스트가 있어요",
+          sub:
+            guaranteed.length > 0
+              ? `${guaranteed.length}개는 확정됐어요. 동점 후보 중 ${requiredTieCount}개를 골라주세요`
+              : `동점 후보 중 ${requiredTieCount}개를 골라주세요`,
+        }
       : isHost === false
         ? { title: "퀘스트를 확정하고 있어요", sub: "방장이 확정하면 바로 보여드릴게요" }
         : null;
@@ -245,6 +256,19 @@ export default function QuestConfirmScreen({ roomId }: QuestConfirmScreenProps) 
               </>
             ) : isHost && tieGroups ? (
               <>
+                {guaranteed.length > 0 && (
+                  <View style={styles.guaranteed}>
+                    <Text style={styles.sectionTitle}>확정된 퀘스트</Text>
+                    {guaranteed.map((candidate, index) => (
+                      <FinalQuestCard
+                        key={candidate.candidate_id}
+                        rank={candidate.rank_no ?? index + 1}
+                        title={candidate.quest_title}
+                        voteCount={candidate.vote_count}
+                      />
+                    ))}
+                  </View>
+                )}
                 <Text style={styles.sectionTitle}>동점 후보</Text>
                 {tieGroups.map((group) => (
                   <TieBreakSelector
@@ -331,6 +355,7 @@ const styles = StyleSheet.create({
   introSub: { fontSize: moderateScale(13), color: COLORS.textSub },
 
   listSection: { marginTop: verticalScale(32) },
+  guaranteed: { marginBottom: verticalScale(24) },
   sectionTitle: {
     fontSize: moderateScale(16),
     fontWeight: "bold",

@@ -13,6 +13,9 @@ out/
 # Logs
 *.log
 
+# Original region image assets
+/지역별 대표사진/
+
 # IDE
 .idea/
 .vscode/

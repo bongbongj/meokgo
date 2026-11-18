@@ -22,16 +22,27 @@ public class InitialDataLoader implements ApplicationRunner {
             "성수", "홍대", "잠실", "연남동", "망원동", "합정", "한남동", "이태원", "서촌", "북촌",
             "익선동", "을지로", "강남", "신사", "가로수길", "압구정", "건대", "신촌", "문래", "여의도"
     );
-    private static final Map<String, String> REGION_IMAGE_FILES = Map.of(
-            "성수", "seongsu.jpg",
-            "홍대", "hongdae.jpg",
-            "잠실", "jamsil.jpg",
-            "망원동", "mangwon.jpg",
-            "북촌", "bukchon.jpg",
-            "익선동", "ikseondong.jpg",
-            "을지로", "euljiro.jpg",
-            "강남", "gangnam.jpg",
-            "신사", "sinsa.jpg"
+    private static final Map<String, String> REGION_IMAGE_FILES = Map.ofEntries(
+            Map.entry("성수", "seongsu.jpg"),
+            Map.entry("홍대", "hongdae.jpg"),
+            Map.entry("잠실", "jamsil.jpg"),
+            Map.entry("연남동", "yeonnam.jpg"),
+            Map.entry("망원동", "mangwon.jpg"),
+            Map.entry("합정", "hapjeong.jpg"),
+            Map.entry("한남동", "hannam.jpg"),
+            Map.entry("이태원", "itaewon.jpg"),
+            Map.entry("서촌", "seochon.jpg"),
+            Map.entry("북촌", "bukchon.jpg"),
+            Map.entry("익선동", "ikseondong.jpg"),
+            Map.entry("을지로", "euljiro.jpg"),
+            Map.entry("강남", "gangnam.jpg"),
+            Map.entry("신사", "sinsa.jpg"),
+            Map.entry("가로수길", "garosugil.jpg"),
+            Map.entry("압구정", "apgujeong.jpg"),
+            Map.entry("건대", "geondae.jpg"),
+            Map.entry("신촌", "sinchon.jpg"),
+            Map.entry("문래", "mullae.jpg"),
+            Map.entry("여의도", "yeouido.jpg")
     );
 
     private final RegionRepository regionRepository;

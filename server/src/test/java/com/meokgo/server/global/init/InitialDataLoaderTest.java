@@ -42,15 +42,9 @@ class InitialDataLoaderTest {
             assertThat(region.getParentRegionId()).isNull();
             assertThat(region.getLevel()).isEqualTo("DISTRICT");
         });
-        assertThat(regions).filteredOn(region -> List.of(
-                        "성수", "홍대", "잠실", "망원동", "북촌", "익선동", "을지로", "강남", "신사"
-                ).contains(region.getName()))
-                .allSatisfy(region -> assertThat(region.getImageUrl())
-                        .startsWith("http://localhost:8080/region-images/"));
-        assertThat(regions).filteredOn(region -> !List.of(
-                        "성수", "홍대", "잠실", "망원동", "북촌", "익선동", "을지로", "강남", "신사"
-                ).contains(region.getName()))
-                .allSatisfy(region -> assertThat(region.getImageUrl()).isNull());
+        assertThat(regions).allSatisfy(region -> assertThat(region.getImageUrl())
+                .startsWith("http://localhost:8080/region-images/")
+                .endsWith(".jpg"));
     }
 
     @Test

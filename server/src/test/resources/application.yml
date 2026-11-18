@@ -1,4 +1,6 @@
 spring:
+  flyway:
+    enabled: false
   jackson:
     property-naming-strategy: SNAKE_CASE
   datasource:

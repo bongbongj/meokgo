@@ -10,7 +10,9 @@
 
 신규 DB와 로컬 H2는 엔티티 기준으로 테이블을 생성한다. 이번 검증은 H2에서 수행하며, 기존 MySQL 데이터의 변경 작업은 자동 실행하지 않는다.
 
-현재 `ddl-auto: update` 설정은 기존 데이터의 의미 변환이나 사용하지 않는 컬럼 삭제를 대신하지 않는다. 기존 데이터가 있으면 서버 적용 전에 아래 순서로 별도 이관한다.
+현재 스키마 변경은 `server/src/main/resources/db/migration`의 Flyway SQL로 관리하고 JPA는 `ddl-auto: validate`로 일치 여부만 확인한다. 빈 DB에는 `V1__create_initial_schema.sql`이 자동 적용된다.
+
+기존 테이블이 있는 DB는 먼저 전체 백업을 만들고 V1 스키마와 구조가 같은지 확인한다. 구조가 같은 경우에만 첫 실행에서 `FLYWAY_BASELINE_ON_MIGRATE=true`를 사용해 V1 기준으로 등록한 뒤 즉시 `false`로 되돌린다. 구조가 다르면 자동 기준 등록을 사용하지 않고 필요한 `ALTER TABLE` 마이그레이션을 별도 버전으로 작성한다.
 
 ## 2. 탐험 조건 데이터
 

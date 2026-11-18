@@ -84,9 +84,15 @@ class RegionControllerTest {
                 .andExpect(jsonPath("$.data.regions[0].region_name", is("홍대")));
     }
 
-    @Test
-    void 지역대표이미지를_정적리소스로_제공한다() throws Exception {
-        mockMvc.perform(get("/region-images/hongdae.jpg"))
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "seongsu.jpg", "hongdae.jpg", "jamsil.jpg", "yeonnam.jpg", "mangwon.jpg",
+            "hapjeong.jpg", "hannam.jpg", "itaewon.jpg", "seochon.jpg", "bukchon.jpg",
+            "ikseondong.jpg", "euljiro.jpg", "gangnam.jpg", "sinsa.jpg", "garosugil.jpg",
+            "apgujeong.jpg", "geondae.jpg", "sinchon.jpg", "mullae.jpg", "yeouido.jpg"
+    })
+    void 모든_지역대표이미지를_정적리소스로_제공한다(String imageFile) throws Exception {
+        mockMvc.perform(get("/region-images/{imageFile}", imageFile))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.IMAGE_JPEG));
     }

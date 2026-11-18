@@ -14,13 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { COLORS } from "../constants/colors";
 import { scale, verticalScale, moderateScale } from "../utils/responsive";
-import {
-  ActiveRoom,
-  fetchHomeData,
-  HomeData,
-  HomeMockType,
-  IS_HOME_MOCK,
-} from "../api/homeApi";
+import { ActiveRoom, fetchHomeData, HomeData } from "../api/homeApi";
 import { formatCompactDotDate } from "../utils/date";
 import { activeRoomHref } from "../utils/roomNavigation";
 import BottomTabBar from "../components/BottomTabBar";
@@ -33,13 +27,12 @@ const goActiveRoom = ({ room_id, room_status }: ActiveRoom) => {
 };
 
 export default function HomeScreen() {
-  const [mockType, setMockType] = useState<HomeMockType>("VOTING");
   const [homeData, setHomeData] = useState<HomeData | null>(null);
 
   // API 데이터 호출
   useEffect(() => {
     let ignore = false; // 늦게 도착한 이전 응답이 덮어쓰지 않도록
-    fetchHomeData(mockType)
+    fetchHomeData()
       .then((res) => {
         if (!ignore && res.success) setHomeData(res.data);
       })
@@ -49,7 +42,7 @@ export default function HomeScreen() {
     return () => {
       ignore = true;
     };
-  }, [mockType]);
+  }, []);
 
   const activeRoom = homeData?.active_room;
   const isVoting = activeRoom?.room_status === "VOTING";
@@ -71,30 +64,6 @@ export default function HomeScreen() {
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
 
       <View style={styles.mobileWrapper}>
-        {/* 상단 테스트용 전환 탭 (개발 모드 + 더미일 때만) */}
-        {__DEV__ && IS_HOME_MOCK && (
-        <View style={styles.testBar}>
-          {(["EMPTY", "ACTIVE", "VOTING"] as HomeMockType[]).map((type) => (
-            <TouchableOpacity
-              key={type}
-              onPress={() => setMockType(type)}
-              style={[
-                styles.testBtn,
-                mockType === type && styles.testBtnActive,
-              ]}
-            >
-              <Text style={styles.testBtnText}>
-                {type === "EMPTY"
-                  ? "탐험없음"
-                  : type === "ACTIVE"
-                    ? "탐험중"
-                    : "투표중"}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-        )}
-
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -277,21 +246,6 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   scrollContent: { paddingBottom: verticalScale(120) },
-
-  testBar: {
-    flexDirection: "row",
-    justifyContent: "center",
-    backgroundColor: "#eee",
-    padding: scale(4),
-  },
-  testBtn: {
-    marginHorizontal: scale(4),
-    paddingVertical: scale(6),
-    paddingHorizontal: scale(10),
-    borderRadius: scale(4),
-  },
-  testBtnActive: { backgroundColor: "#ccc" },
-  testBtnText: { fontSize: moderateScale(11), fontWeight: "bold" },
 
   header: {
     paddingHorizontal: scale(20),

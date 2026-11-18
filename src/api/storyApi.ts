@@ -6,7 +6,6 @@
 import { File } from "expo-file-system";
 import { Platform } from "react-native";
 import { api, ApiError } from "./client";
-import { mockResolve, USE_MOCK } from "./mock";
 import type { RecordPhoto } from "./recordApi";
 
 export interface StoryTemplate {
@@ -32,19 +31,8 @@ export const STORY_MAX_PHOTOS = 4;
 export const STORY_PHOTO_MAX_BYTES = 10 * 1024 * 1024;
 export const STORY_PHOTO_TYPES = ["image/jpeg", "image/png"];
 
-const isMocked = () => USE_MOCK.story;
-
-// 디자인 시안: 01 MOOD / 02 콜라주
-const MOCK_TEMPLATES: StoryTemplate[] = [
-  { template_id: 1, template_name: "MOOD", preview_url: "" },
-  { template_id: 2, template_name: "콜라주", preview_url: "" },
-];
-
-let mockPhotoId = 100;
-
 /** Story 템플릿 목록 */
 export const fetchStoryTemplates = async (): Promise<StoryTemplate[]> => {
-  if (isMocked()) return mockResolve(MOCK_TEMPLATES);
   const data = await api.get<{ templates: StoryTemplate[] }>("/story-templates");
   return data.templates;
 };
@@ -73,15 +61,6 @@ export const uploadRecordPhotos = async (
 ): Promise<PhotoUploadResult> => {
   if (photos.length < 1 || photos.length > STORY_MAX_PHOTOS) {
     throw new ApiError("FILE-001", "사진은 1장부터 4장까지 올릴 수 있어요.", 400);
-  }
-  if (isMocked()) {
-    return mockResolve(
-      {
-        record_id: recordId,
-        photos: photos.map((photo) => ({ photo_id: (mockPhotoId += 1), photo_url: photo.uri })),
-      },
-      500,
-    );
   }
   const form = new FormData();
   await Promise.all(photos.map((photo, index) => appendPhoto(form, photo, index)));

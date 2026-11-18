@@ -1,11 +1,8 @@
 // src/api/homeApi.ts
 
 import { api } from "./client";
-import { USE_MOCK } from "./mock";
 import { fetchVoteStatus } from "./voteApi";
 import type { RoomStatus } from "./types";
-
-export type HomeMockType = "EMPTY" | "ACTIVE" | "VOTING";
 
 export interface ActiveRoom {
   room_id: number;
@@ -22,14 +19,14 @@ export interface RecentRecord {
   region_name: string;
   completed_quest_count: number;
   created_at: string; // ISO 8601 (화면에서 formatDotDate로 표시)
-  thumbnail_url: string | null; // 기록 썸네일 (지금은 지역 대표 이미지, BE 추가 요청 중)
+  thumbnail_url: string | null; // 기록 썸네일 (지금은 지역 대표 이미지)
 }
 
 export interface PopularRegion {
   region_id: number;
   region_name: string;
   exploration_count: number;
-  region_image_url: string | null; // 지역 대표 이미지 (BE 추가 요청 중)
+  region_image_url: string | null; // 지역 대표 이미지
 }
 
 export interface HomeData {
@@ -38,87 +35,10 @@ export interface HomeData {
   popular_regions: PopularRegion[];
 }
 
-// 홈 상단 테스트 전환 탭 노출 여부 (더미일 때만)
-export const IS_HOME_MOCK = USE_MOCK.home;
-
 export interface HomeResponse {
   success: boolean;
   data: HomeData;
 }
-
-// 3가지 상태별 더미 데이터 세트
-const MOCK_DATA_SETS: Record<HomeMockType, HomeData> = {
-  // 1. 탐험 없음
-  EMPTY: {
-    active_room: null,
-    recent_records: [],
-    popular_regions: [
-      { region_id: 1, region_name: "행궁동", exploration_count: 15, region_image_url: null },
-      { region_id: 2, region_name: "성수동", exploration_count: 12, region_image_url: null },
-      { region_id: 3, region_name: "을지로", exploration_count: 9, region_image_url: null },
-      { region_id: 4, region_name: "망원동", exploration_count: 8, region_image_url: null },
-    ],
-  },
-
-  // 2. 탐험 진행 중
-  ACTIVE: {
-    active_room: {
-      room_id: 10,
-      room_status: "IN_PROGRESS",
-      region_name: "행궁동",
-      participant_count: 4,
-      completed_quest_count: 1,
-      total_quest_count: 3,
-    },
-    recent_records: [
-      {
-        record_id: 1,
-        region_name: "망원동",
-        completed_quest_count: 3,
-        created_at: "2026-09-10T19:30:00",
-        thumbnail_url: null,
-      },
-      {
-        record_id: 2,
-        region_name: "성수동",
-        completed_quest_count: 2,
-        created_at: "2026-04-22T19:30:00",
-        thumbnail_url: null,
-      },
-    ],
-    popular_regions: [],
-  },
-
-  // 3. 투표 진행 중 (인원수와 투표완료 수에 따라 바가 유연하게 변경됨)
-  VOTING: {
-    active_room: {
-      room_id: 11,
-      room_status: "VOTING",
-      region_name: "행궁동",
-      participant_count: 4, // 총 친구 수 (바의 전체 개수)
-      voted_participant_count: 3, // 투표 완료 수 (흰색으로 채워지는 개수)
-      completed_quest_count: 2,
-      total_quest_count: 3,
-    },
-    recent_records: [
-      {
-        record_id: 1,
-        region_name: "망원동",
-        completed_quest_count: 3,
-        created_at: "2026-09-10T19:30:00",
-        thumbnail_url: null,
-      },
-      {
-        record_id: 2,
-        region_name: "성수동",
-        completed_quest_count: 2,
-        created_at: "2026-04-22T19:30:00",
-        thumbnail_url: null,
-      },
-    ],
-    popular_regions: [],
-  },
-};
 
 /**
  * 02-2 투표 대기 카드의 투표 완료 인원
@@ -139,22 +59,9 @@ const withVotedCount = async (data: HomeData): Promise<HomeData> => {
 
 /**
  * 홈 화면 데이터 조회 API
- * GET /api/v1/home (type은 더미 전용)
+ * GET /api/v1/home
  */
-export const fetchHomeData = async (
-  type: HomeMockType = "VOTING",
-): Promise<HomeResponse> => {
-  if (!USE_MOCK.home) {
-    const data = await api.get<HomeData>("/home");
-    return { success: true, data: await withVotedCount(data) };
-  }
-
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        success: true,
-        data: MOCK_DATA_SETS[type],
-      });
-    }, 200);
-  });
+export const fetchHomeData = async (): Promise<HomeResponse> => {
+  const data = await api.get<HomeData>("/home");
+  return { success: true, data: await withVotedCount(data) };
 };

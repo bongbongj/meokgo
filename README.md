@@ -31,80 +31,18 @@ npx expo start          # 웹만 실행: npx expo start --web (포트 8081)
 
 ## 화면 바로 열기 (앞 화면 건너뛰기)
 
-주소창에 경로를 직접 입력하면 해당 화면으로 바로 들어갑니다.
+주소창에 경로를 직접 입력하면 해당 화면으로 바로 들어갑니다. (예: `/rooms/{방 번호}/vote`, `/records/{기록 번호}`)
 
-### 더미 모드 (기본)
-
-`.env`의 `EXPO_PUBLIC_USE_MOCK=true` 상태에서는 BE 없이 동작하며, 방 번호는 아무 숫자나 됩니다.
-더미 모드에서는 **방 번호가 홀수면 방장, 짝수면 참가자**로 동작합니다.
-(03 조건 선택에서 만든 방, 06 초대 링크로 참여한 방은 번호와 관계없이 실제 역할을 따릅니다)
-
-- 02 홈: `http://localhost:8081/home` — 상단 테스트 탭(탐험없음 / 탐험중 / 투표중)으로 02-1 / 02 / 02-2 전환 (개발 모드 + 더미일 때만 표시)
-- 03 → 05 → 07 → 09: `/condition`에서 방 만들기 → 초대장 → 참여 대기(친구가 5초마다 1명씩 참여) → 퀘스트 선택 시작 → 퀘스트 투표
-- 06 친구 참여 링크 (`src/api/roomApi.ts`의 `mockRooms`)
-
-  | 주소 | 상황 |
-  | --- | --- |
-  | `/join/A2F8` | 참여 가능 → 08 참여 대기(참가자), 약 15초 뒤 방장 미접속 → 07-1 방장 권한 이어받기. 닉네임 `서연` 입력 시 06-2 |
-  | `/join/STARTED` | 06-1 참여 마감 (투표 시작됨) |
-  | `/join/FINISHED` | 06-1 참여 마감 (종료된 탐험) |
-  | `/join/FULL` | 06-1 참여 마감 (정원 초과) |
-
-- 09 퀘스트 투표: `http://localhost:8081/rooms/1/vote`
-- 09-1 투표 현황(방장): `http://localhost:8081/rooms/1/vote-status`
-- 10 투표 대기(참가자): `http://localhost:8081/rooms/2/vote-status`
-- 10-1 퀘스트 확정 (방 번호 100 이상은 투표 마감 상태에서 시작)
-
-  | 주소 | 상황 |
-  | --- | --- |
-  | `/rooms/101/confirm` | 방장 · 동점 없음 → 자동 확정 |
-  | `/rooms/103/confirm` | 방장 · 동점 있음 → 동점 후보 선택 |
-  | `/rooms/102/confirm` | 참가자 · 방장 확정 대기 |
-  | `/rooms/104/confirm` | 참가자 · 확정 완료, 탐험 시작 대기 |
-
-- 09-1에서 마감하면 10-1 → 탐험 시작하기 → 10-2까지 이어서 확인할 수 있습니다. (더미 방 상태는 새로고침하면 초기화)
-- 10-2 퀘스트 진행 → 18 탐험 종료
-
-  | 주소 | 상황 |
-  | --- | --- |
-  | `/rooms/101/progress` | 방장 · 3개 모두 완료하면 탐험 종료하기 활성 → 18 |
-  | `/rooms/102/progress` | 참가자 · 3개 모두 완료하고 약 8초 뒤 방장이 종료한 것으로 처리 → 다음 폴링에서 18 자동 이동 (10~20초) |
-  | `/rooms/101/finish` | 18 탐험 종료 (10-2에서 종료한 뒤에만 기록 보러가기 활성) |
-
-- 11 ~ 15 내 기록 · 탐험 기록 (`src/api/recordApi.ts` 더미)
-
-  | 주소 | 상황 |
-  | --- | --- |
-  | `/records` | 11 내 기록 · 기록 4개 (망원 / 성수 / 행궁 / 문래). 상단 테스트 버튼으로 14 빈 상태 전환 (개발 모드 + 더미일 때만 표시) |
-  | `/records` → 연필 아이콘 | 12 닉네임 변경 → 저장 시 13 변경 완료 토스트 |
-  | `/records/4` | 15 탐험 기록 (망원동) |
-  | `/records/1101` | 15 탐험 기록 · 디자인 시안(을지로). 10-2 → 18에서 종료한 방의 기록 번호는 `1000 + 방 번호` |
-  | `/records/1101/story` | 16 스토리 템플릿 선택 (기록 사진 4장으로 채워진 상태) |
-  | `/records/1101/preview` | 17 기록 미리보기 (16을 거치지 않으면 01 MOOD + 기록 사진 앞 4장) |
-
-- 11의 닉네임은 01 닉네임 설정에서 기기에 저장한 값입니다. 주소로 바로 열어 저장된 값이 없으면 비어 보입니다. (웹: 콘솔에서 `localStorage.setItem('user.nickname', '민교')`)
-- 10-2에서 탐험을 종료하면 11 기록 목록 맨 앞에 을지로 기록이 추가됩니다. (새로고침하면 초기화)
-
-- 방 번호 규칙은 `src/api/mockRooms.ts`에 있습니다.
-
-### 실제 BE 모드
-
-BE에 **투표 중인 방**이 있고, 그 방에 **지금 브라우저의 기기 키가 참여자로** 들어가 있어야 합니다.
+BE에 그 번호의 방 · 기록이 있고, **지금 브라우저의 기기 키가 그 방의 참여자로** 들어가 있어야 합니다. 예를 들어 09 퀘스트 투표를 바로 열려면 BE에 투표 중인 방이 있어야 합니다.
 
 1. BE 실행: MySQL이 없으면 IntelliJ `ServerApplication` 실행 설정에 환경 변수 `SPRING_PROFILES_ACTIVE=local-h2` 추가 후 실행 (메모리 DB — BE를 다시 켜면 방이 모두 사라짐)
-2. FE 폴더에 `.env.local` 생성 후 `npx expo start` 재시작
-
-   ```
-   EXPO_PUBLIC_USE_MOCK=false
-   ```
-
-3. `http://localhost:8081`을 한 번 열고, 개발자도구(F12) 콘솔에서 기기 키 확인
+2. `http://localhost:8081`을 한 번 열고, 개발자도구(F12) 콘솔에서 기기 키 확인
 
    ```js
    localStorage.getItem('meokgo.deviceKey')
    ```
 
-4. PowerShell에서 닉네임 등록 → 방 생성 → 투표 시작 (`$key`만 바꿔서 실행)
+3. PowerShell에서 닉네임 등록 → 방 생성 → 투표 시작 (`$key`만 바꿔서 실행)
 
    ```powershell
    $key = "여기에_기기키"
@@ -117,14 +55,14 @@ BE에 **투표 중인 방**이 있고, 그 방에 **지금 브라우저의 기�
    "방 번호: $roomId  →  http://localhost:8081/rooms/$roomId/vote"
    ```
 
-5. 출력된 주소로 접속 (방 번호가 1이 아닐 수 있음)
+4. 출력된 주소로 접속 (방 번호가 1이 아닐 수 있음)
 
 | 화면에 뜨는 오류 | 원인 |
 | --- | --- |
-| 탐험방을 찾을 수 없습니다 (`ROOM-001`) | BE에 그 번호의 방이 없음 (BE 재시작 등) → 4번 다시 실행 |
+| 탐험방을 찾을 수 없습니다 (`ROOM-001`) | BE에 그 번호의 방이 없음 (BE 재시작 등) → 3번 다시 실행 |
 | 이 탐험방의 참여자가 아니에요 (`PARTICIPANT-001`) | 방을 만든 기기 키와 브라우저의 기기 키가 다름 (다른 브라우저 / 시크릿 창) |
 
-더미 모드로 돌아가려면 `.env.local`을 지우고 `npx expo start`를 다시 실행합니다.
+- 11의 닉네임은 01 닉네임 설정에서 기기에 저장한 값입니다. 주소로 바로 열어 저장된 값이 없으면 비어 보입니다. (웹: 콘솔에서 `localStorage.setItem('user.nickname', '민교')`)
 
 ## 환경 변수
 
@@ -133,7 +71,6 @@ BE에 **투표 중인 방**이 있고, 그 방에 **지금 브라우저의 기�
 | 변수 | 기본값 | 설명 |
 | --- | --- | --- |
 | `EXPO_PUBLIC_API_URL` | `http://localhost:8080` | BE 서버 주소 (`/api/v1` 제외) |
-| `EXPO_PUBLIC_USE_MOCK` | `true` | `"false"`면 실서버, 그 외에는 더미 API |
 
 - 개인 PC 전용 값(실기기 테스트용 PC IP 등)은 `.env.local`에 작성합니다. (커밋 제외)
 - 값을 바꾼 뒤에는 개발 서버를 다시 시작해야 반영됩니다.
@@ -144,20 +81,18 @@ BE에 **투표 중인 방**이 있고, 그 방에 **지금 브라우저의 기�
 | --- | --- |
 | `client.ts` | 공통 클라이언트. Base URL, 공통 헤더, 응답 / 오류 처리 |
 | `deviceKey.ts` | `X-Device-Key` 생성(UUID) 및 기기 저장 |
-| `mock.ts` | 도메인별 더미 / 실서버 전환 (`USE_MOCK`), `mockResolve()` |
 | `types.ts` | `ApiResponse`, `ApiError` 코드, API명세서 2.5 Enum 타입 |
-| `apiError.ts` | FE1 — `ApiError`(= `client.ts`와 같은 클래스), 더미 헬퍼 `mockResponse` / `mockError`, 실서버 응답을 `{ success, data }`로 감싸는 `toResponse` |
+| `apiError.ts` | FE1 — `ApiError`(= `client.ts`와 같은 클래스), 서버 응답을 `{ success, data }`로 감싸는 `toResponse` |
 | `nicknameApi.ts` | FE1 — 닉네임 최초 설정 (`POST /users/me/nickname`) |
-| `homeApi.ts` | FE1 — 홈 (`GET /home`, BE 미구현 → `HOME_API_PENDING`) |
+| `homeApi.ts` | FE1 — 홈 (`GET /home`) |
 | `regionApi.ts` | FE1 — 지역 검색·분류, 최근 선택 지역 |
-| `roomApi.ts` | FE1 — 방 생성, 대기 상태, 방 상세(BE 미구현), 투표 시작, 방장 이어받기(BE 미구현) |
+| `roomApi.ts` | FE1 — 방 생성, 대기 상태, 방 상세, 투표 시작, 방장 이어받기 |
 | `inviteApi.ts` | FE1 — 초대 정보 조회, 초대 링크 참여 |
 | `voteApi.ts` | FE2 — 후보 조회(미생성 시 생성 후 재조회), 투표 저장 / 수정(POST / PUT), 투표 현황, 방 상태 |
-| `explorationApi.ts` | FE2 — 탐험 시작, 진행 조회, 퀘스트 완료 / 취소, 탐험 종료 (BE 미구현 → `EXPLORATION_API_PENDING`) |
-| `recordApi.ts` | FE2 — 사용자 통계, 기록 목록 / 상세 (BE 미구현 → `RECORD_API_PENDING`). 더미 사진(`mock://…`)은 `getPhotoSource()`로 `assets/images/mock/` 이미지로 바꿈 |
-| `storyApi.ts` | FE2 — Story 템플릿, 기록 사진 업로드(multipart, 1 ~ 4장) (BE 미구현 → `STORY_API_PENDING`) |
+| `explorationApi.ts` | FE2 — 탐험 시작, 진행 조회, 퀘스트 완료 / 취소, 탐험 종료 |
+| `recordApi.ts` | FE2 — 사용자 통계, 기록 목록 / 상세 |
+| `storyApi.ts` | FE2 — Story 템플릿, 기록 사진 업로드(multipart, 1 ~ 4장) |
 | `userApi.ts` | 닉네임 변경 (`PATCH /users/me/nickname`, FE2). bootstrap / 닉네임 최초 설정은 FE1이 `nicknameApi.ts`에서 옮길 예정 |
-| `mockRooms.ts` | 더미 전용 — 화면 사이 방 상태 / 방장 여부 공유 (FE1 더미 방도 여기에 기록) |
 
 ```ts
 import { api, isApiError } from "../api/client";
@@ -175,9 +110,8 @@ try { ... } catch (e) {
 - 모든 요청에 `X-Device-Key`가 자동으로 붙습니다. 같은 기기에서는 앱 삭제 전까지 같은 값을 사용합니다.
 - 요청 / 응답 필드명은 서버와 같은 **snake_case**를 그대로 사용합니다.
 - 오류 코드는 API명세서 2.4 + 클라이언트 전용 `NETWORK`(연결 실패), `TIMEOUT`(10초 초과), `UNKNOWN`입니다.
-- BE가 아직 없는 API는 `USE_MOCK.<도메인>`이 `true`일 때 `mockResolve()`로 API명세서 응답 예시와 같은 구조의 더미를 반환하도록 만듭니다.
 - 도메인별 API 파일은 API명세서 장 단위로 나눕니다. (`userApi.ts`, `voteApi.ts` 등)
-- FE1 API(`homeApi` ~ `inviteApi`)는 FE1 화면 그대로 `{ success, data }`를 반환합니다. 더미 / 실서버 전환은 FE2 API와 같이 `USE_MOCK.<도메인>`과 `*_API_PENDING` 값으로 합니다.
+- FE1 API(`homeApi` ~ `inviteApi`)는 FE1 화면 그대로 `{ success, data }`를 반환합니다.
 
 ## 라우트
 
@@ -220,7 +154,6 @@ try { ... } catch (e) {
 - 09-1: 퀘스트별 득표 막대(득표가 있는 퀘스트만, 막대 길이 = 득표수 / 전체 인원). 득표 합계가 0이면 마감 버튼 비활성.
 - 09-2: 마감하기 → 확인창(미투표 인원, 현재 득표 1위) → 마감 후 10-1 퀘스트 확정으로 이동. 취소·딤 영역을 누르면 닫힘.
 - 10: 방 상태가 `VOTE_CLOSED` / `QUEST_CONFIRMED`면 10-1 퀘스트 확정, `IN_PROGRESS`면 10-2 퀘스트 진행으로 자동 이동합니다.
-- BE 미구현으로 **더미**인 API: 투표 현황(`VOTE_STATUS_API_PENDING`), 마감 확인·마감(`VOTE_CLOSE_API_PENDING`). 구현되면 `voteApi.ts`의 해당 값을 `false`로 바꿉니다.
 - 방 상태 / 방장 여부는 `voteApi.ts`의 `fetchRoomState()`(`waiting-status` 사용)로 조회합니다. (FE1 `roomApi.ts`의 `fetchWaitingStatus()`와 같은 API)
 
 ### 10-1 퀘스트 확정 동작
@@ -239,7 +172,7 @@ try { ... } catch (e) {
 - 10-2: 순서와 관계없이 완료할 수 있고, 화면 진입 시 1회 + 5초 간격으로 `GET /exploration/progress`와 방 상태를 조회합니다. (완료 요청 중에는 폴링 결과로 덮어쓰지 않음)
 - 10-2: 방장은 3개를 모두 완료하면 탐험 종료하기 활성 → `POST /exploration/finish` → 18. 참가자는 버튼 없이 안내 문구만 보이고, `FINISHED`를 감지하면 18로 자동 이동합니다.
 - 18: `GET /exploration/progress`로 요약(지역 / 인원 / 완료 퀘스트 수)을 다시 조회하고, 탐험 기록 보러가기 → `/records/{record_id}`.
-- 10-2 / 18의 날짜는 API에 날짜 필드가 없어 기기의 오늘 날짜, 대표 참여자 닉네임은 `GET /rooms/{id}`(더미)에서 가져옵니다.
+- 10-2 / 18의 날짜는 API에 날짜 필드가 없어 기기의 오늘 날짜, 대표 참여자 닉네임은 `GET /rooms/{id}`에서 가져옵니다.
 
 ### 11 ~ 15 내 기록 · 탐험 기록 동작
 
@@ -288,7 +221,7 @@ try { ... } catch (e) {
 | --- | --- | --- | --- | --- |
 | C-03 | 10-1 | 동점 후보 선택 화면 | 시안이 없어 09 퀘스트 투표 목록과 같은 모양 | 이 모양으로 확정해도 될까요? |
 | C-04 | 15 | 기록 남기기 버튼 | 화면정의에는 있으나 시안에 없어 완료한 퀘스트 아래에 둠 | 버튼 위치 · 모양 |
-| C-05 | 15 | 대표 사진 | `photos`의 첫 번째 사진을 대표 사진으로 사용, 사진이 없으면 회색 영역 | 사진이 없을 때 기본 이미지 (+ BE: 대표 사진 필드가 필요한가요?) |
+| C-05 | 15 | 대표 사진 | `photos`의 첫 번째 사진을 대표 사진으로 사용, 사진이 없으면(기록 남기기 전) 지역 대표 이미지 (이미지가 없는 지역은 회색 영역) | 사진이 없을 때 기본 이미지 (+ BE: 대표 사진 필드가 필요한가요?) |
 | C-06 | 16 | 사진 칸 비우기 | 시안에 없어 사진 오른쪽 위 X 버튼 추가 (빈 칸은 템플릿에서 제외 규칙용) | 비우기 방법 · 아이콘 |
 | C-07 | 17 | 공유 버튼 | 화면정의에는 저장 / 공유가 있으나 시안에는 이미지 저장만 있어, 저장 아래에 공유하기 글자 버튼 (앱에서만) | 공유 버튼 위치 · 모양 |
 | C-08 | 17 | 기록 이미지 문구 | 시안은 지역명만 있으나 화면정의("날짜 / 완료 퀘스트 자동 삽입")에 따라 날짜 · 퀘스트 수 추가 | 넣을 정보와 위치 |
@@ -297,12 +230,12 @@ try { ... } catch (e) {
 
 | 번호 | 화면 | 항목 | 현재 구현 | 확인할 내용 |
 | --- | --- | --- | --- | --- |
-| C-09 | 10-1 | 확정된 퀘스트 조회 | API가 없어 `fetchFinalQuests()` 더미 사용 → 참가자 · 재진입한 방장이 확정 결과를 볼 수 없음 | `GET /rooms/{id}/final-quests` 추가 |
+| C-09 | 10-1 | 확정된 퀘스트 조회 | 전용 API가 없어 확정 후 `GET /final-quests/preview`로 확정 결과를 대신 조회 (확정 퀘스트 번호 · 선정 사유 없음) | `GET /rooms/{id}/final-quests` 추가 |
 | C-10 | 10-1 | 동점일 때 확정 순위 | `preview`에 이미 확정된 순위가 없어 "1 · 2위 확정 + 3위 선택"을 보여줄 수 없음 | `preview` 응답에 확정 후보 추가 |
 | C-11 | 10-1 / 10-2 / 18 | 탐험 날짜 | `GET /rooms/{id}`, `GET /exploration/progress`에 날짜가 없어 기기의 오늘 날짜로 표시 | 응답에 `created_at` (또는 탐험 시작일) 추가 |
-| C-12 | 18 | 참가자의 기록 번호 | `record_id`는 종료한 방장만 받음 → 더미 진행 조회 응답에 `record_id` 추가 | `GET /exploration/progress`에 `record_id` 추가 (종료 후) |
-| C-13 | 10-2 | 종료 후 완료 변경 오류 코드 | 전용 코드가 없어 더미는 `ROOM-002`로 응답 | 사용할 오류 코드 |
-| C-14 | 11 | 기록 카드 대표 사진 | `GET /users/me/records`에 사진 필드가 없어 더미에 `thumbnail_url` 추가 | `records[].thumbnail_url` 추가 |
+| C-12 | 18 | 참가자의 기록 번호 | `record_id`는 종료한 방장만 받음 → 참가자는 18에서 내 기록 목록의 같은 지역 최근 기록으로 찾음 | `GET /exploration/progress`에 `record_id` 추가 (종료 후) |
+| C-13 | 10-2 | 종료 후 완료 변경 오류 코드 | 전용 오류 코드가 정해져 있지 않음 | 사용할 오류 코드 |
+| C-14 | 11 | 기록 카드 대표 사진 | `GET /users/me/records`에 사진 필드가 없어 기록마다 상세를 조회해 첫 번째 사진으로 채움 (사진이 없으면 지역 대표 이미지) | `records[].thumbnail_url` 추가 |
 | C-15 | 11 | 내 닉네임 조회 | 사용자 정보 조회 API가 `bootstrap`뿐이라 기기에 저장된 닉네임을 표시 | `bootstrap` 응답 또는 통계 응답에 `nickname` 추가 |
 | C-16 | 16 / 17 | 템플릿 ↔ 레이아웃 | 레이아웃 구분 값이 없어 `template_id` 1 → MOOD, 2 → 콜라주로 고정 | `templates[].layout_code` (예: `MOOD`, `COLLAGE`) 추가 |
 | C-17 | 16 | 사진 1080px 리사이즈 | 앱에서는 리사이즈하지 않고 원본(품질 0.9)을 올림 | 서버에서 리사이즈하나요? |
@@ -335,7 +268,7 @@ FE1과 겹치던 컴포넌트(헤더, 아바타)는 FE1 것으로 통일했습�
 
 ### FE1 참고
 
-- FE1 API는 `client.ts` / `mock.ts`로 실서버 전환이 되도록 연결했습니다. `nicknameApi.ts` → `userApi.ts`(bootstrap, 닉네임 변경 포함) 정리는 남아 있습니다.
+- FE1 API는 `client.ts`로 실서버에 연결했습니다. `nicknameApi.ts` → `userApi.ts`(bootstrap, 닉네임 변경 포함) 정리는 남아 있습니다.
 - `(tabs)/_layout.tsx`(하단 탭)와 `home.tsx`의 `(tabs)` 이동은 FE1 담당입니다. 그 전까지 02 홈의 탭바를 `components/BottomTabBar.tsx`로 분리해 FE2 화면(11, 15)과 함께 씁니다 (2026-11-03, FE2).
 - 실서버 모드에서 BE가 꺼져 있으면 04 지역 선택 시트에서 처리되지 않은 오류가 납니다 (`RegionSelectSheet`의 조회에 `catch` 없음).
 - 템플릿에서 남은 기존 오류 2건: `src/components/app-tabs.web.tsx`(삭제된 `/explore` 참조, tsc), `src/hooks/use-color-scheme.web.ts`(lint)
@@ -348,9 +281,7 @@ FE1과 겹치던 컴포넌트(헤더, 아바타)는 FE1 것으로 통일했습�
 
 09-1 / 10 화면으로 확인: 실제 `is_host` 값으로 방장(09-1) / 초대 참여자(10) 화면 분기 정상.
 
-- BE 미구현으로 FE에서 더미 처리 중: `GET /home`, `GET /votes/status`, `GET /votes/close-preview`, `POST /votes/close`, `GET /rooms/{id}`, `POST /rooms/{id}/host/takeover`, `GET /final-quests/preview`, `POST /final-quests/tie-break`, `POST /final-quests`, `POST /exploration/start`, `GET /exploration/progress`, `PATCH /final-quests/{id}/progress`, `POST /exploration/finish`, `GET /users/me/statistics`, `GET /users/me/records`, `GET /records/{id}`, `GET /story-templates`, `POST /records/{id}/photos`
-  - BE 작업분이 push되면 각 API 파일의 `*_API_PENDING`을 `false`로 바꿉니다.
-- 지역 썸네일 (FE1 요청서: `region.image_url` 컬럼 추가) — FE 타입·화면은 준비 완료, 더미 값은 `null`(회색 기본 이미지)
+- 지역 썸네일 (FE1 요청서: `region.image_url` 컬럼 추가) — BE 반영 완료. 이미지가 없는 지역은 `null`(회색 기본 이미지)
   - `GET /home`: `recent_records[].thumbnail_url`, `popular_regions[].region_image_url`
   - `GET /regions`: `regions[].region_image_url`, `GET /users/me/recent-regions`: `recent_regions[].region_image_url`
 - BE 구현과 FE1 화면이 다른 점

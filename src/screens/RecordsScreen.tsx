@@ -21,13 +21,10 @@ import { COLORS } from "../constants/colors";
 import { moderateScale, scale, verticalScale } from "../utils/responsive";
 import { getStoredNickname, saveStoredNickname } from "../utils/userStorage";
 import { isApiError } from "../api/client";
-import { USE_MOCK } from "../api/mock";
 import {
   fetchMyRecords,
   fetchMyStatistics,
-  isMockRecordsEmpty,
   RecordSummary,
-  setMockRecordsEmpty,
   UserStatistics,
 } from "../api/recordApi";
 import { updateNickname } from "../api/userApi";
@@ -50,7 +47,6 @@ export default function RecordsScreen() {
   const [statistics, setStatistics] = useState<UserStatistics | null>(null);
   const [records, setRecords] = useState<RecordSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [mockEmpty, setMockEmpty] = useState(isMockRecordsEmpty);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const { showToast, toast } = useToast();
@@ -82,12 +78,6 @@ export default function RecordsScreen() {
   const reload = () => {
     setError(null);
     load();
-  };
-
-  const toggleMockEmpty = () => {
-    setMockRecordsEmpty(!mockEmpty);
-    setMockEmpty(!mockEmpty);
-    reload();
   };
 
   const handleSave = async (next: string) => {
@@ -125,16 +115,6 @@ export default function RecordsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.mobileWrapper}>
-        {__DEV__ && USE_MOCK.record && (
-          <View style={styles.testBar}>
-            <TouchableOpacity onPress={toggleMockEmpty} style={styles.testBtn}>
-              <Text style={styles.testBtnText}>
-                {mockEmpty ? "기록 있음 보기" : "기록 없음(14) 보기"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -262,19 +242,6 @@ const styles = StyleSheet.create({
     paddingVertical: verticalScale(40),
     alignItems: "center",
   },
-
-  testBar: {
-    flexDirection: "row",
-    justifyContent: "center",
-    backgroundColor: "#eee",
-    padding: scale(4),
-  },
-  testBtn: {
-    paddingVertical: scale(6),
-    paddingHorizontal: scale(10),
-    borderRadius: scale(4),
-  },
-  testBtnText: { fontSize: moderateScale(11), fontWeight: "bold" },
 
   profile: {
     flexDirection: "row",

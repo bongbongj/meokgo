@@ -2,6 +2,7 @@ package com.meokgo.server.api.vote;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -53,6 +54,8 @@ class VoteFlowTest {
                                 """.formatted(region.getId())))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.data.invite_url",
+                        startsWith("https://participant.example.com/invite/")))
                 .andReturn();
 
         String roomContent = roomResult.getResponse().getContentAsString();

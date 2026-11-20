@@ -39,6 +39,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -57,6 +58,7 @@ public class RoomService {
     private final RoomAccessService accessService;
     private final UserRecentRegionRepository recentRegionRepository;
     private final VoteItemRepository voteItemRepository;
+    private final String participantWebBaseUrl;
 
     public RoomService(
             DeviceUserRepository deviceUserRepository,
@@ -70,7 +72,8 @@ public class RoomService {
             RoomQuestCandidateRepository candidateRepository,
             RoomAccessService accessService,
             UserRecentRegionRepository recentRegionRepository,
-            VoteItemRepository voteItemRepository
+            VoteItemRepository voteItemRepository,
+            @Value("${app.invite.participant-web-base-url:http://localhost:5173}") String participantWebBaseUrl
     ) {
         this.deviceUserRepository = deviceUserRepository;
         this.regionRepository = regionRepository;
@@ -84,6 +87,7 @@ public class RoomService {
         this.accessService = accessService;
         this.recentRegionRepository = recentRegionRepository;
         this.voteItemRepository = voteItemRepository;
+        this.participantWebBaseUrl = participantWebBaseUrl.replaceAll("/+$", "");
     }
 
     @Transactional
@@ -114,7 +118,7 @@ public class RoomService {
                 room.getRoomCode(),
                 room.getStatus().name(),
                 room.getMaxParticipantCount(),
-                "https://meokgo.app/invite/" + inviteLink.getToken(),
+                participantWebBaseUrl + "/invite/" + inviteLink.getToken(),
                 new RoomParticipantSummary(participant.getId(), participant.getNickname(), participant.getRole().name(), true)
         );
     }

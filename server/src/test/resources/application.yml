@@ -23,5 +23,7 @@ springdoc:
     tags-sorter: alpha
 
 app:
+  invite:
+    participant-web-base-url: https://participant.example.com/
   cors:
     allowed-origins: http://localhost:3000

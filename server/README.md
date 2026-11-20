@@ -14,11 +14,16 @@
 
 | 이름 | 기본값 | 설명 |
 | --- | --- | --- |
-| `SERVER_PORT` | `8080` | 서버 포트 |
+| `PORT` | - | Railway가 주입하는 운영 서버 포트 |
+| `SERVER_PORT` | `8080` | `PORT`가 없을 때 사용하는 로컬 서버 포트 |
 | `DB_URL` | `jdbc:mysql://localhost:3306/meokgo_db?serverTimezone=Asia/Seoul&characterEncoding=UTF-8` | MySQL 연결 URL |
 | `DB_USERNAME` | `root` | DB 사용자 |
 | `DB_PASSWORD` | `meokgo` | DB 비밀번호 |
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:3000,http://localhost:5173,http://localhost:8081` | 허용할 프론트 개발 서버 Origin |
+| `PARTICIPANT_WEB_BASE_URL` | `http://localhost:5173` | 초대 링크에 사용할 참여자용 웹 기준 주소 |
+| `REGION_IMAGE_PUBLIC_BASE_URL` | `http://localhost:8080` | 지역 대표 이미지를 제공하는 백엔드 HTTPS 주소 |
+| `STORAGE_LOCAL_ROOT` | `./storage` | 기록 사진과 Story 이미지 저장 경로 |
+| `STORY_FONT_FAMILY` | `SansSerif` | Story 이미지에 사용할 한글 글꼴 |
 
 루트의 `docker-compose.yml`로 MySQL을 실행하면 기본 비밀번호는 `meokgo`다.
 
@@ -53,6 +58,47 @@ http://localhost:8080/swagger-ui
 ```
 
 `Authorize` 버튼에서 `X-Device-Key` 값을 입력하면 Swagger 요청에 기기 식별 헤더가 포함된다.
+
+## Railway 배포
+
+### 1. MySQL 생성
+
+Railway 프로젝트에 MySQL 템플릿을 추가한다. DB는 외부 TCP Proxy를 활성화하지 않고 같은 프로젝트의 백엔드에서만 내부 네트워크로 접속한다.
+
+### 2. 백엔드 서비스 생성
+
+GitHub 저장소를 연결하고 서비스 루트 디렉터리를 `server`로 지정한다. Railway는 `server/Dockerfile`을 사용해 Java 21 서버와 나눔고딕을 포함한 이미지를 빌드한다.
+
+### 3. 운영 환경 변수 등록
+
+```text
+DB_URL=jdbc:mysql://<Railway MySQL 내부 호스트>:<포트>/<DB명>?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+DB_USERNAME=<Railway MySQL 사용자>
+DB_PASSWORD=<Railway MySQL 비밀번호>
+PARTICIPANT_WEB_BASE_URL=https://<Vercel 운영 도메인>
+CORS_ALLOWED_ORIGINS=https://<Vercel 운영 도메인>
+STORAGE_LOCAL_ROOT=/app/storage
+STORY_FONT_FAMILY=NanumGothic
+SPRING_PROFILES_ACTIVE=prod
+REGION_IMAGE_PUBLIC_BASE_URL=https://<Railway 백엔드 도메인>
+```
+
+`DB_URL`, `DB_USERNAME`, `DB_PASSWORD`는 Railway MySQL 서비스의 변수를 참조해 등록한다. 비밀번호를 저장소나 Docker 이미지에 포함하지 않는다.
+
+### 4. 영속 볼륨 연결
+
+백엔드 서비스에 영속 볼륨을 추가하고 마운트 경로를 `/app/storage`로 지정한다. 이 볼륨에 기록 사진과 생성된 Story 이미지가 저장되며 서버 재배포 후에도 유지된다.
+
+### 5. HTTPS와 헬스체크
+
+Public Networking에서 Railway 도메인을 생성하고 헬스체크 경로를 `/actuator/health`로 지정한다. 발급된 HTTPS 주소를 방장 앱과 Vercel 참여자 웹의 API 주소로 사용한다.
+
+### 6. 배포 후 확인
+
+1. 방장 앱에서 방을 생성한다.
+2. `invite_url`이 Vercel 운영 도메인의 `/invite/{inviteToken}` 형식인지 확인한다.
+3. 다른 기기의 브라우저에서 링크를 열고 닉네임으로 참여한다.
+4. 사진과 Story 이미지를 생성한 뒤 백엔드를 재배포해 파일과 DB 데이터가 유지되는지 확인한다.
 
 ## 현재 세팅 범위
 

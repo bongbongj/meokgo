@@ -2,6 +2,7 @@
   "expo": {
     "name": "먹으러GO",
     "slug": "muk-eo-reo-go",
+    "owner": "meokgo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -11,6 +12,7 @@
       "icon": "./assets/images/icon.png"
     },
     "android": {
+      "package": "com.meokgo.app",
       "adaptiveIcon": {
         "backgroundColor": "#FDF8F2",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -19,7 +21,8 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "output": "static",
+      "output": "single",
+      "lang": "ko",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
@@ -52,6 +55,11 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "76b61675-6575-41db-b2c7-82ed07069cd3"
+      }
     }
   }
 }

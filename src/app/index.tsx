@@ -1,5 +1,7 @@
 import React, { useEffect } from "react";
+import { Platform } from "react-native";
 import SplashScreen from "../screens/SplashScreen";
+import WebLandingScreen from "../screens/WebLandingScreen";
 import { router } from "expo-router";
 import { fetchBootstrap } from "../api/userApi";
 import { getStoredNickname, saveStoredNickname } from "../utils/userStorage";
@@ -20,7 +22,12 @@ const resolveNickname = async (): Promise<string | null> => {
   }
 };
 
+// 웹은 초대받은 참여자용이라 /로 직접 들어오면 초대 링크 안내만 보여 준다
 export default function Index() {
+  return Platform.OS === "web" ? <WebLandingScreen /> : <AppEntry />;
+}
+
+function AppEntry() {
   useEffect(() => {
     let ignore = false;
 

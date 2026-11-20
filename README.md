@@ -72,6 +72,8 @@ BE에 그 번호의 방 · 기록이 있고, **지금 브라우저의 기기 키
 
 - 개인 PC 전용 값(실기기 테스트용 PC IP 등)은 `.env.local`에 작성합니다. (커밋 제외)
 - 값을 바꾼 뒤에는 개발 서버를 다시 시작해야 반영됩니다.
+- 배포 빌드는 `eas.json` · Vercel 환경 변수의 값이 `.env` · `.env.local`보다 우선합니다. (→ [배포](#배포))
+- 로컬 BE 없이 운영 서버에 붙여 보려면 `.env.local`에 `EXPO_PUBLIC_API_URL=https://meokgo-production.up.railway.app`을 적습니다. 운영 DB에 테스트 데이터가 생기므로 확인이 끝나면 지웁니다.
 
 ### 실기기로 테스트할 때 (`.env.local`)
 
@@ -89,6 +91,61 @@ BE에 그 번호의 방 · 기록이 있고, **지금 브라우저의 기기 키
 
 - 와이파이를 바꾸거나 공유기가 IP를 새로 주면 주소가 달라지므로, 접속이 안 되면 IP부터 다시 확인합니다.
 - PC 방화벽이 8080(BE) / 8081(FE) 포트를 막고 있으면 같은 와이파이여도 접속되지 않습니다.
+
+## 배포
+
+방장은 앱(APK), 참여자는 초대 링크로 웹에 접속합니다. 웹은 별도 앱이 아니라 이 프로젝트를 웹으로 export한 것입니다.
+
+| 구분 | 주소 · 설정 |
+| --- | --- |
+| BE API | `https://meokgo-production.up.railway.app` (Railway) |
+| 참여자 웹 | `https://meokgo.vercel.app` (Vercel 프로젝트 `meokgo`), 초대 링크는 `/invite/{초대 토큰}` |
+| 방장 앱 | EAS 프로젝트 `@meokgo/muk-eo-reo-go`, Android 패키지 `com.meokgo.app` |
+
+### 방장 앱 APK 빌드 (EAS)
+
+```bash
+npx eas-cli@latest login                                     # 최초 1회, meokgo 조직 멤버 계정
+npx eas-cli@latest build -p android --profile preview
+```
+
+- API 주소는 `eas.json`의 `preview.env.EXPO_PUBLIC_API_URL`에 있습니다.
+- 빌드가 끝나면 터미널에 나오는 EAS 빌드 페이지 링크(또는 QR)를 안드로이드 폰에서 열어 설치합니다.
+- iOS 앱은 Apple 개발자 계정(연 $99)이 있어야 실기기에 설치할 수 있어 아직 만들지 않았습니다.
+
+### 참여자 웹 배포 (Vercel)
+
+```bash
+npx vercel@latest login                                      # 최초 1회
+npx vercel@latest link --project meokgo                      # 최초 1회 (.vercel/ 생성, 커밋 제외)
+npx vercel@latest --prod
+```
+
+- GitHub 연동이 없어 push해도 자동 배포되지 않습니다. 반영하려면 `--prod`로 직접 배포합니다.
+- 빌드 설정은 `vercel.json`에 있습니다. (`npx expo export -p web` → `dist`, 모든 경로를 `index.html`로 rewrite)
+- API 주소는 Vercel 프로젝트의 Production 환경 변수 `EXPO_PUBLIC_API_URL`입니다. 빌드할 때 번들에 들어가므로 값을 바꾸면 다시 배포해야 합니다.
+
+배포 전 로컬 확인:
+
+```powershell
+$env:EXPO_PUBLIC_API_URL = "https://meokgo-production.up.railway.app"; npx expo export -p web --clear
+npx serve dist -s        # http://localhost:3000/invite/아무값 → 새로고침해도 화면이 나오는지
+```
+
+### BE와 맞춰야 하는 값 (Railway 환경 변수)
+
+| 변수 | 값 |
+| --- | --- |
+| `PARTICIPANT_WEB_BASE_URL` | `https://meokgo.vercel.app` (끝에 `/` 없이) — 초대 링크 앞부분 |
+| `CORS_ALLOWED_ORIGINS` | `https://meokgo.vercel.app` 포함 (쉼표로 구분) |
+
+- 초대 링크는 BE가 만들고, FE는 받은 `invite_url`을 그대로 복사 · 공유합니다. 주소가 이상하면 BE 값을 확인합니다.
+- 이미 만든 방의 초대 링크는 방장 기기에 저장된 값이라, BE 값을 고친 뒤 새로 만든 방부터 바뀝니다.
+
+### 웹에서 다르게 동작하는 점
+
+- `/`로 직접 들어오면 방장 화면 대신 "초대 링크로 접속해 주세요" 안내 화면이 나옵니다. (`src/app/index.tsx`)
+- 기기 키는 localStorage에 저장되어 새로고침 · 재접속해도 유지됩니다. 저장할 수 없는 환경(사파리 프라이빗 모드 등)에서는 메모리 값으로 동작해 탭을 닫으면 다른 사용자로 인식됩니다.
 
 ## API 모듈 (`src/api/`)
 
